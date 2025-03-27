@@ -516,25 +516,17 @@ onKeyDown "c"       s = ifCtrl id (setElemStr "C") s
 onKeyDown "x"       s = ifCtrl id (setElemStr "X") s
 onKeyDown "z"       s = ifCtrl undo (setElemStr "Z") s
 onKeyDown "y"       s = ifCtrl redo (setElemStr "Y") s
-onKeyDown "1" s = addBondShortcut False Single NoBondStereo s
-onKeyDown "2" s = addBondShortcut False Dbl NoBondStereo s
-onKeyDown "3" s = addBondShortcut False Triple NoBondStereo s
-onKeyDown "4" s = addBondShortcut True Single Up s 
-onKeyDown "5" s = addBondShortcut True Single Down s
+onKeyDown "1"       s = addBondShortcut False Single NoBondStereo s
+onKeyDown "2"       s = addBondShortcut False Dbl NoBondStereo s
+onKeyDown "3"       s = addBondShortcut False Triple NoBondStereo s
+onKeyDown "4"       s = addBondShortcut True Single Up s 
+onKeyDown "5"       s = addBondShortcut True Single Down s
 onKeyDown x         s = setElemStr (toUpper x) s
 
 onKeyUp "Shift"   s = {modifier $= reset Shift} s
 onKeyUp "Control" s = {modifier $= reset Ctrl, mode $= stopTemplRot s} s
 onKeyUp "Meta"    s = {modifier $= reset Ctrl, mode $= stopTemplRot s} s
 onKeyUp _         s = s
-
-
-
-
-
-
-
-
 
 enableAbbr : DrawState -> DrawState
 enableAbbr s =
