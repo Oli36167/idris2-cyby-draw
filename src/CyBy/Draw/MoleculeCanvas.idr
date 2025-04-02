@@ -572,6 +572,28 @@ addBondShortcut bol bo bs s =
         (setMol (addBond {t = Id} False Nothing (MkBond bol bo bs) s.imol) s)
     _ => s  -- If not hovering over a valid atom, do nothing
 
+expandAbbrInCDI : DrawState -> DrawState
+expandAbbrInCDI s = {mol $= expand} s
+
+-- Adds a bond to the molecule if hovering over a valid atom, 
+-- ensuring it's not an abbreviation. 
+addGroupShortcut :
+    {auto cd : CoreDims}
+  -> String
+  -> CDGraph
+  -> DrawState
+  -> DrawState
+addGroupShortcut l g s =
+  case hoveredItem s.imol of
+    N x => case inAbbreviation s.imol (fst x) of
+      True => s
+      False =>
+        let s = {mol $= ifHover Origin} s  -- First set the Origin flag 
+        in unHoverOldHoverNew 
+        (setMol (setAbbreviation False l s.posId g s.mol) s)
+    _ => s  -- If not hovering over a valid atom, do nothing
+
+
 onKeyDown, onKeyUp : DrawSettings => String -> DrawState -> DrawState
 onKeyDown "Escape"  s = {mode := Select, mol $= clear} s
 onKeyDown "Delete"  s = delete s
@@ -591,6 +613,9 @@ onKeyDown "2"       s = addBondShortcut False Dbl NoBondStereo s
 onKeyDown "3"       s = addBondShortcut False Triple NoBondStereo s
 onKeyDown "4"       s = addBondShortcut True Single Up s 
 onKeyDown "5"       s = addBondShortcut True Single Down s
+
+onKeyDown "6"       s = expandAbbrInCDI (addGroupShortcut "Ph" (readMolfile ph) s)
+
 onKeyDown x         s = setElemStr (toUpper x) s
 
 onKeyUp "Shift"   s = {modifier $= reset Shift} s

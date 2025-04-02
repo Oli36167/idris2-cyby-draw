@@ -21,11 +21,12 @@ record Abbreviation where
 abbr : String -> String -> String -> Abbreviation
 abbr x y = A x y . readMolfile
 
-export
+public export
 reverseLabel : String -> List Abbreviation -> String
 reverseLabel s []              = s
 reverseLabel s (A l r _ :: xs) = if s == l then r else reverseLabel s xs
 
+public export
 ph, cy : String
 ac, oAc, bn, bz : String
 
@@ -33,7 +34,7 @@ export
 phenyl : CDGraph
 phenyl = readMolfile ph
 
-export
+public export
 abbreviations : List Abbreviation
 abbreviations =
   [ abbr "Ac" "Ac" ac
