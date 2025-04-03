@@ -484,80 +484,18 @@ stopTemplRot : DrawSettings => DrawState -> Mode -> Mode
 stopTemplRot s (RotTempl p g) = SetTempl (rotateTempl False p s.posMol g)
 stopTemplRot s m              = m
 
-
--- Do I need this?
--- getCDIk : (s : DrawState) -> CDIGraph s.mol.order 
--- getCDIk s = s.imol
-
--- numberOfNodesInCDIG : {k : _} -> CDIGraph k -> Maybe Nat
--- numberOfNodesInCDIG cdg = case nodes cdg of
---    []    => Nothing
---    -- Substracting 1 because Fin 10 means the length of our list is 10
---    -- But the index of the node we want will be 9.
---    nodes => Just (minus (length nodes) 1)
-
--- HovernewNode s = {mol $= ifNewNode? Hover} s
-
--- For adding bonds sequentially, I essentially need to first add 
--- a new bond, lets say a methyl group. And then change the current hovering
--- position to a new position (Probably by unvorering on the old node
--- and starting to hover on the new node). The new position or rather the new node, will 
--- be the node that was last added to the graph. This can be extracted by 
--- somethin like: the (Fin 10) last. The hovering takes plase in Role.idr.
--- What I also need to concider is a pattern match on the size of the graph
--- because I will not be able to do the (Fin 0) last as this will give an error.
--- Finally I need to understand, where unecessary labels are removed (like
--- the label Origin that we add in addBondShortcut.) Stefan believed
--- this label would be removed in SetMol, however he was not certain of this. 
-
--- But this means, that addBondShortcut can largely be left as it is. 
--- The only thing that needs to happen, after adding the methyl group is
--- that we need to change the hovering position. The hovering position itself
--- is part of the DrawState, thus I will be able to do something like this:
--- changehoverpos (setMol xy s)
-
-
--- Update:
--- Hovering seems to be managed in Role.idr
--- However there are examples of unhover and hovering in:
--- Internal/Graph.idr starting from line 319
-
--- Pseudocode:
--- xy -> DrawState -> DrawState
--- unHover s.imol
--- xy -> DrawState -> DrawState
--- ifHover s.imol[(Fin k) last]
--- 
-
--- next steps: 
--- 1) find out how unHover and ifHover work 
--- 2) Probably start to first unhover the current node (probably easier)
--- 3) Try to start hovering on any given new node
--- 4) Find out how to hover on the newest node the (Fin 10) last
-
-ifNewNode : Role -> CDGraph -> CDGraph
-ifNewNode r = map (\x => setIf r (is New x) x)
-
-ifNewAndHoverNode : Role -> CDGraph -> CDGraph
-ifNewAndHoverNode r = map (unset New)
-
-unHoverAllNodes : DrawState -> DrawState
-unHoverAllNodes s = {mol $= ifHover None} s
-
-hoverNewNode : DrawState -> DrawState
-hoverNewNode s = {mol $= ifNewNode Hover} s
-
-removeNewRole : DrawState -> DrawState
-removeNewRole s = {mol $= ifNewAndHoverNode Hover} s
-
-unHoverOldHoverNew : DrawState -> DrawState
-unHoverOldHoverNew s = removeNewRole (hoverNewNode (unHoverAllNodes s))
-
--- Adds a bond to the molecule if hovering over a valid atom, 
--- ensuring it's not an abbreviation. 
+||| Adds a bond to the molecule if hovering over a valid atom,  
+||| ensuring it is not an abbreviation.  
+|||  
+||| - If the cursor is over a valid atom (not an abbreviation), 
+|||   set the 'Origin' flag.  
+||| - Attempt to add a bond with the given bond order and stereo.  
+||| - Update roles by replacing 'New' with 'Hover' and unsetting 
+|||   any existing 'Hover' roles.  
+||| - If no valid atom is hovered over, do nothing.  
 addBondShortcut :
     {auto cd : CoreDims}
-  -> Bool
+  -> Bool 
   -> BondOrder
   -> BondStereo
   -> DrawState
@@ -565,11 +503,11 @@ addBondShortcut :
 addBondShortcut bol bo bs s =
   case hoveredItem s.imol of
     N x => case inAbbreviation s.imol (fst x) of
-      True => s
-      False =>
+      True => s -- If hovering over abbreviation, do nothing
+      False =>  -- If hovering over valid atom, set bond and update roles
         let s = {mol $= ifHover Origin} s  -- First set the Origin flag 
-        in unHoverOldHoverNew 
-        (setMol (addBond {t = Id} False Nothing (MkBond bol bo bs) s.imol) s)
+        in {mol $= hoverIfNew}
+           (setMol (addBond {t = Id} False Nothing (MkBond bol bo bs) s.imol) s)
     _ => s  -- If not hovering over a valid atom, do nothing
 
 onKeyDown, onKeyUp : DrawSettings => String -> DrawState -> DrawState
