@@ -28,6 +28,7 @@ reverseLabel s (A l r _ :: xs) = if s == l then r else reverseLabel s xs
 
 public export
 ph, cy : String
+public export
 ac, oAc, bn, bz : String
 
 export
