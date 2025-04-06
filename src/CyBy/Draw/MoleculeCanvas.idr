@@ -490,7 +490,7 @@ stopTemplRot s m              = m
 |||  
 ||| - If the cursor is over a valid atom (not an abbreviation),
 |||   set the 'Origin' flag.  
-||| - Attempt to add a bond with the given bond order and stereo.  
+||| - Add a bond with the given bond order and stereo.  
 ||| - Update roles by replacing 'New' with 'Hover' and unsetting
 |||   any existing 'Hover' roles.  
 ||| - If no valid atom is hovered over, do nothing.  
@@ -511,9 +511,17 @@ addBondShortcut bol bo bs s =
            (setMol (addBond {t = Id} False Nothing (MkBond bol bo bs) s.imol) s)
     _ => s  -- If not hovering over a valid atom, do nothing
 
+||| Adds a group to the molecule if hovering over a valid atom,  
+||| ensuring it is not an abbreviation.  
+|||  
+||| - If the cursor is over a valid atom (not an abbreviation) or a bond,
+|||   a group is added.
+||| - The added nodes get the role 'New'.
+||| - If no valid atom is hovered over, do nothing.  
+||| - Unfortunately, the roles are not updated yet which is a bug.
 addGroupShortcut :
      {auto cd : CoreDims}
-     -> CDGraph -- For example 'phenyl'
+     -> CDGraph -- For example 'phenyl', '(readMolfile ac)' or '(Ring 5)'
      -> DrawState
      -> DrawState
 addGroupShortcut g s =
@@ -521,27 +529,9 @@ addGroupShortcut g s =
     N x => case inAbbreviation s.imol (fst x) of
       True => s -- If hovering over abbreviation, do nothing
       False =>  -- If hovering over valid atom, merge Graph with new Group
-      -- Pseudocode: in {mol $= assignNewRoles} s
+      -- Pseudocode: in {mol $= updateRoles} s
         setMol (mergeGraphs s.posId s.mol g) s
     _ => s  -- If not hovering over a valid atom, do nothing
-
--- -- Adds a bond to the molecule if hovering over a valid atom,
--- -- ensuring it's not an abbreviation.
--- addAbbrShortcut :
---     {auto cd : CoreDims}
---   -> String
---   -> CDGraph
---   -> DrawState
---   -> DrawState
--- addAbbrShortcut l g s =
---   case hoveredItem s.imol of
---     N x => case inAbbreviation s.imol (fst x) of
---       True => s
---       False =>
---         let s = {mol $= ifHover Origin} s  -- First set the Origin flag
---         in {mol $= hoverAll}
---         (setMol (setAbbreviation False l s.posId g s.mol) s)
---     _ => s  -- If not hovering over a valid atom, do nothing
 
 onKeyDown, onKeyUp : DrawSettings => String -> DrawState -> DrawState
 onKeyDown "Escape"  s = {mode := Select, mol $= clear} s
@@ -566,11 +556,27 @@ onKeyDown "6"       s = addGroupShortcut (readMolfile cy) s
 onKeyDown "7"       s = addBondShortcut True Single Up s 
 onKeyDown "8"       s = addBondShortcut True Single Down s
 onKeyDown "9"       s = addGroupShortcut (readMolfile ac) s
-
--- -- Adds Abbreviation for Phenyl Group
+onKeyDown x         s = setElemStr (toUpper x) s
+-- Adds Abbreviation for Phenyl Group
 -- onKeyDown "8"       s = addAbbrShortcut "Ph" (readMolfile ph) s
 
-onKeyDown x         s = setElemStr (toUpper x) s
+-- -- Adds a bond to the molecule if hovering over a valid atom,
+-- -- ensuring it's not an abbreviation.
+-- addAbbrShortcut :
+--     {auto cd : CoreDims}
+--   -> String
+--   -> CDGraph
+--   -> DrawState
+--   -> DrawState
+-- addAbbrShortcut l g s =
+--   case hoveredItem s.imol of
+--     N x => case inAbbreviation s.imol (fst x) of
+--       True => s
+--       False =>
+--         let s = {mol $= ifHover Origin} s  -- First set the Origin flag
+--         in {mol $= hoverAll}
+--         (setMol (setAbbreviation False l s.posId g s.mol) s)
+--     _ => s  -- If not hovering over a valid atom, do nothing
 
 onKeyUp "Shift"   s = {modifier $= reset Shift} s
 onKeyUp "Control" s = {modifier $= reset Ctrl, mode $= stopTemplRot s} s
