@@ -485,19 +485,18 @@ stopTemplRot : DrawSettings => DrawState -> Mode -> Mode
 stopTemplRot s (RotTempl p g) = SetTempl (rotateTempl False p s.posMol g)
 stopTemplRot s m              = m
 
-
 ||| Adds a bond to the molecule if hovering over a valid atom,  
 ||| ensuring it is not an abbreviation.  
 |||  
-||| - If the cursor is over a valid atom (not an abbreviation), 
+||| - If the cursor is over a valid atom (not an abbreviation),
 |||   set the 'Origin' flag.  
 ||| - Attempt to add a bond with the given bond order and stereo.  
-||| - Update roles by replacing 'New' with 'Hover' and unsetting 
+||| - Update roles by replacing 'New' with 'Hover' and unsetting
 |||   any existing 'Hover' roles.  
 ||| - If no valid atom is hovered over, do nothing.  
 addBondShortcut :
     {auto cd : CoreDims}
-  -> Bool 
+  -> Bool
   -> BondOrder
   -> BondStereo
   -> DrawState
@@ -507,13 +506,27 @@ addBondShortcut bol bo bs s =
     N x => case inAbbreviation s.imol (fst x) of
       True => s -- If hovering over abbreviation, do nothing
       False =>  -- If hovering over valid atom, set bond and update roles
-        let s = {mol $= ifHover Origin} s  -- First set the Origin flag 
+        let s = {mol $= ifHover Origin} s  -- First set the Origin flag
         in {mol $= hoverIfNew}
            (setMol (addBond {t = Id} False Nothing (MkBond bol bo bs) s.imol) s)
     _ => s  -- If not hovering over a valid atom, do nothing
 
--- -- Adds a bond to the molecule if hovering over a valid atom, 
--- -- ensuring it's not an abbreviation. 
+addGroupShortcut :
+     {auto cd : CoreDims}
+     -> CDGraph -- For example 'phenyl'
+     -> DrawState
+     -> DrawState
+addGroupShortcut g s =
+  case hoveredItem s.imol of
+    N x => case inAbbreviation s.imol (fst x) of
+      True => s -- If hovering over abbreviation, do nothing
+      False =>  -- If hovering over valid atom, merge Graph with new Group
+      -- Pseudocode: in {mol $= assignNewRoles} s
+        setMol (mergeGraphs s.posId s.mol g) s
+    _ => s  -- If not hovering over a valid atom, do nothing
+
+-- -- Adds a bond to the molecule if hovering over a valid atom,
+-- -- ensuring it's not an abbreviation.
 -- addAbbrShortcut :
 --     {auto cd : CoreDims}
 --   -> String
@@ -525,17 +538,10 @@ addBondShortcut bol bo bs s =
 --     N x => case inAbbreviation s.imol (fst x) of
 --       True => s
 --       False =>
---         let s = {mol $= ifHover Origin} s  -- First set the Origin flag 
+--         let s = {mol $= ifHover Origin} s  -- First set the Origin flag
 --         in {mol $= hoverAll}
 --         (setMol (setAbbreviation False l s.posId g s.mol) s)
 --     _ => s  -- If not hovering over a valid atom, do nothing
-
-addGroupShortcut : 
-     {auto cd : CoreDims}
-     -> CDGraph -- For example 'phenyl'
-     -> DrawState 
-     -> DrawState
-addGroupShortcut g s = setMol (mergeGraphs s.posId s.mol g) s
 
 onKeyDown, onKeyUp : DrawSettings => String -> DrawState -> DrawState
 onKeyDown "Escape"  s = {mode := Select, mol $= clear} s
