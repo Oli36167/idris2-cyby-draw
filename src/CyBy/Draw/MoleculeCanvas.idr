@@ -512,6 +512,20 @@ addBondShortcut bol bo bs s =
            (setMol (addBond {t = Id} False Nothing (MkBond bol bo bs) s.imol) s)
     _ => s  -- If not hovering over a valid atom, do nothing
 
+addGroupShortcut : 
+     {auto cd : CoreDims}
+     -> CDGraph -- For example 'phenyl'
+     -> DrawState 
+     -> DrawState
+addGroupShortcut g s = 
+  case hoveredItem s.imol of
+    N x => case inAbbreviation s.imol (fst x) of
+      True => s -- If hovering over abbreviation, do nothing
+      False =>  -- If hovering over valid atom, merge Graph with new Group
+      -- Pseudocode: in {mol $= assignNewRoles} s
+        setMol (mergeGraphs s.posId s.mol g) s
+    _ => s  -- If not hovering over a valid atom, do nothing
+
 -- -- Adds a bond to the molecule if hovering over a valid atom, 
 -- -- ensuring it's not an abbreviation. 
 -- addAbbrShortcut :
@@ -529,13 +543,6 @@ addBondShortcut bol bo bs s =
 --         in {mol $= hoverAll}
 --         (setMol (setAbbreviation False l s.posId g s.mol) s)
 --     _ => s  -- If not hovering over a valid atom, do nothing
-
-addGroupShortcut : 
-     {auto cd : CoreDims}
-     -> CDGraph -- For example 'phenyl'
-     -> DrawState 
-     -> DrawState
-addGroupShortcut g s = setMol (mergeGraphs s.posId s.mol g) s
 
 onKeyDown, onKeyUp : DrawSettings => String -> DrawState -> DrawState
 onKeyDown "Escape"  s = {mode := Select, mol $= clear} s
@@ -556,7 +563,7 @@ onKeyDown "2"       s = addBondShortcut False Dbl NoBondStereo s
 onKeyDown "3"       s = addBondShortcut False Triple NoBondStereo s
 onKeyDown "4"       s = addGroupShortcut phenyl s
 onKeyDown "5"       s = addGroupShortcut (ring 5) s
-onKeyDown "6"       s = addGroupShortcut (readMolfile cy) s
+onKeyDown "6"       s = addGroupShortcut (ring 6) s
 onKeyDown "7"       s = addBondShortcut True Single Up s 
 onKeyDown "8"       s = addBondShortcut True Single Down s
 onKeyDown "9"       s = addGroupShortcut (readMolfile ac) s
