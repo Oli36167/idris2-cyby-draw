@@ -526,13 +526,13 @@ addGroupShortcut :
      -> DrawState
 addGroupShortcut g s =
   case hoveredItem s.imol of
-    N x => case inAbbreviation s.imol (fst x) of
+    N x => case inAbbreviation s.imol (fst x) of 
       True => s -- If hovering over abbreviation, do nothing
       False =>  -- If hovering over valid atom, merge Graph with new Group
       -- Pseudocode: in {mol $= updateRoles} s
+           setMol (mergeGraphs s.posId s.mol g) s
+    E e => setMol (mergeGraphs s.posId s.mol g) s
     _ => s  -- If not hovering over a valid atom, do nothing
-   --     setMol (mergeGraphs s.posId s.mol g) s
-   -- E e => setMol (mergeGraphs s.posId s.mol g) s
 
 onKeyDown, onKeyUp : DrawSettings => String -> DrawState -> DrawState
 onKeyDown "Escape"  s = {mode := Select, mol $= clear} s
