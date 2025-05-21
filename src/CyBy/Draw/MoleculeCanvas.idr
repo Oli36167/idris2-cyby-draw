@@ -489,7 +489,6 @@ stopTemplRot : DrawSettings => DrawState -> Mode -> Mode
 stopTemplRot s (RotTempl p g) = SetTempl (rotateTempl False p s.posMol g)
 stopTemplRot s m              = m
 
-
 -- nextType' and newBond' were 'stolen' from Graph.idr as starting points
 -- This works, but has the side effect of casting a Single when pressing 
 -- any other button like 7 or 8 that are used for addBondShortcut. 
@@ -501,13 +500,7 @@ nextType' "3" = Triple
 nextType' _   = Single
 
 newBond' : String -> MolBond -> MolBond
-newBond' str b =
-  --if b.stereo == NoBondStereo then 
-                              cast $ nextType' str 
-                              --else cast Single
---newBond' Single s            b = adjStereo s b
---newBond' Dbl    _            _ = cast Dbl
---newBond' Triple _            _ = cast Triple
+newBond' str b =  cast $ nextType' str 
 
 -- Adds a bond to the molecule if hovering over a valid atom, 
 -- ensuring it's not an abbreviation. 
@@ -527,10 +520,12 @@ addBondShortcut str bol bo bs s =
        let bnd   := MkBond bol bo bs
            G _ g := ifHover Origin s.mol
         in setMol (hoverIfNew (addBond {t = Id} False Nothing bnd g)) s
-    E (E x y $ CB r b)  => 
-                  let b2 := newBond' str b
-                   in setMol (G _ $ insEdge (E x y $ CB r b2) s.imol) s
-    _ => s  -- If not hovering over a valid atom, do nothing
+    E (E x y $ CB r b) =>
+      if str == "1" || str == "2" || str == "3" then
+        let b2 = newBond' str b in
+          setMol (G _ $ insEdge (E x y $ CB r b2) s.imol) s
+      else s
+    _ => s  -- If not hovering over a valid atom or Edge, do nothing
 
 -- Adds a group to the molecule if hovering over a valid atom or bond, 
 -- ensuring it's not an abbreviation. 
