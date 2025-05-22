@@ -489,21 +489,8 @@ stopTemplRot : DrawSettings => DrawState -> Mode -> Mode
 stopTemplRot s (RotTempl p g) = SetTempl (rotateTempl False p s.posMol g)
 stopTemplRot s m              = m
 
--- nextType' and newBond' were 'stolen' from Graph.idr as starting points
--- This works, but has the side effect of casting a Single when pressing 
--- any other button like 7 or 8 that are used for addBondShortcut. 
--- There I should refine the types, so that only 1,2 and 3 are valid inputs.
-nextType' : String -> BondOrder
-nextType' "1" = Single
-nextType' "2" = Dbl
-nextType' "3" = Triple
-nextType' _   = Single
-
-newBond' : String -> MolBond -> MolBond
-newBond' str b =  cast $ nextType' str 
-
--- Adds a bond to the molecule if hovering over a valid atom, 
--- ensuring it's not an abbreviation. 
+-- Adds a bond if hovering on a Node that is not an abbreviation. 
+-- Changes a bond if hovering on a Node. 
 addBondShortcut :
      {auto cd : CoreDims}
   -> String
