@@ -489,8 +489,8 @@ stopTemplRot : DrawSettings => DrawState -> Mode -> Mode
 stopTemplRot s (RotTempl p g) = SetTempl (rotateTempl False p s.posMol g)
 stopTemplRot s m              = m
 
--- Adds a bond if hovering on a Node that is not an abbreviation. 
--- Changes a bond if hovering on a Node. 
+-- Adds a bond if hovering on a Node (that is not an abbreviation) or changes
+-- a bond if hovering on an edge. 
 addBondShortcut :
      {auto cd : CoreDims}
   -> String
