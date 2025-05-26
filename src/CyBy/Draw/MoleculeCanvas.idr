@@ -508,7 +508,7 @@ addBondShortcut str bol bo bs s =
            G _ g := ifHover Origin s.mol
         in setMol (hoverIfNew (addBond {t = Id} False Nothing bnd g)) s
     E (E x y $ CB r b) =>
-      if not bol then
+      if bs == NoBondStereo then
           setMol (G _ $ insEdge (E x y $ CB r (cast bo)) s.imol) s
       else s
     _ => s  -- If not hovering over a valid atom or Edge, do nothing
