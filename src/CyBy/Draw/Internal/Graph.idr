@@ -124,14 +124,6 @@ newBond Single s            b = adjStereo s b
 newBond Dbl    _            _ = cast Dbl
 newBond Triple _            _ = cast Triple
 
--- Used in addBondSortcut to change bonds with keyboard inputs.
-export
-newBond' : String -> MolBond -> MolBond
-newBond' str b = cast $ case str of
-  "1" => Single
-  "2" => Dbl
-  "3" => Triple
-  _   => Single
 --------------------------------------------------------------------------------
 -- Highlighting
 --------------------------------------------------------------------------------

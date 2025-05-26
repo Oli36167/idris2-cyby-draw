@@ -508,9 +508,8 @@ addBondShortcut str bol bo bs s =
            G _ g := ifHover Origin s.mol
         in setMol (hoverIfNew (addBond {t = Id} False Nothing bnd g)) s
     E (E x y $ CB r b) =>
-      if str == "1" || str == "2" || str == "3" then
-        let b2 = newBond' str b in
-          setMol (G _ $ insEdge (E x y $ CB r b2) s.imol) s
+      if not bol then
+          setMol (G _ $ insEdge (E x y $ CB r (cast bo)) s.imol) s
       else s
     _ => s  -- If not hovering over a valid atom or Edge, do nothing
 
