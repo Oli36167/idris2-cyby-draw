@@ -553,14 +553,45 @@ addAbbrShortcut l g s =
         setMol (setAbbreviation False l s.posId g s.mol) s
     _ => s  -- If not hovering over a valid atom, do nothing
 
+navigation : DrawState -> DrawState
+navigation s = setMol (hoverIfNew s.mol) s
+
+---- In the end this will be either a new s or the old s, instead of
+---- Maybe (List ..)
+visibleHoverNeighbours : CDGraph -> Maybe (k ** List (Fin k))
+visibleHoverNeighbours (G k g) =
+  case find (is Hover . snd) (labNodes g) of
+    Nothing     => Nothing
+    Just (n1,_) => Just (k ** visibleNeighbours g n1)
+
+-- This will get us the Fin k for the new Node
+-- ?f will be the function that determines the node with the best angle to 
+-- the input
+newNode : CDGraph -> Maybe (k ** List (Fin k)) -> Fin k
+newNode a b = ?f visibleHoverNeighbours a
+
+-- this will find the smallest angle and return the corresponding Fin k
+smallestAngle : Maybe (k ** List (Fin k)) -> Fin k
+smallestAngle x = ?smallestAngle_rhs
+
+-- This will set the Role Hover onto the found node. 
+setHover : Fin k -> CDGraph -> CDGraph
+
 onKeyDown, onKeyUp : DrawSettings => String -> DrawState -> DrawState
 onKeyDown "Escape"  s = {mode := Select, mol $= clear} s
 onKeyDown "Delete"  s = delete s
 onKeyDown "Shift"   s = {modifier := Shift} s
 onKeyDown "Control" s = {modifier := Ctrl, mode $= startTemplRot s} s
 onKeyDown "Meta"    s = {modifier := Ctrl, mode $= startTemplRot s} s
-onKeyDown "ArrowUp"   s = modAtom {elem $= incIso} s
-onKeyDown "ArrowDown" s = modAtom {elem $= decIso} s
+
+--onKeyDown "ArrowUp"   s = modAtom {elem $= incIso} s
+--onKeyDown "ArrowDown" s = modAtom {elem $= decIso} s
+
+onKeyDown "ArrowUp"    s = ?navigation'    s
+onKeyDown "ArrowDown"  s = ?navigation''   s
+onKeyDown "ArrowLeft"  s = ?navigation'''  s
+onKeyDown "ArrowRight" s = ?navigation'''' s
+
 onKeyDown "+"       s = ifCtrl (zoomIn True) (modAtom {charge $= incCharge}) s
 onKeyDown "-"       s = ifCtrl (zoomOut True) (modAtom {charge $= decCharge}) s
 onKeyDown "c"       s = ifCtrl id (setElemStr "C") s
