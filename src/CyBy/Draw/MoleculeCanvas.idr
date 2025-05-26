@@ -495,13 +495,12 @@ stopTemplRot s m              = m
 -- hovering over an edge with NoBondStereo.
 addBondShortcut :
      {auto cd : CoreDims}
-  -> String
   -> Bool
   -> BondOrder
   -> BondStereo
   -> DrawState
   -> DrawState
-addBondShortcut str bol bo bs s =
+addBondShortcut bol bo bs s =
   case hoveredItem s.imol of
     N x => case inAbbreviation s.imol (fst x) of
       True => s
@@ -564,14 +563,14 @@ onKeyDown "x"       s = ifCtrl id (setElemStr "X") s
 onKeyDown "z"       s = ifCtrl undo (setElemStr "Z") s
 onKeyDown "y"       s = ifCtrl redo (setElemStr "Y") s
 onKeyDown "0"       s = addAbbrShortcut "Ph" phenyl s
-onKeyDown "1"       s = addBondShortcut "1" False Single NoBondStereo s
-onKeyDown "2"       s = addBondShortcut "2" False Dbl NoBondStereo s
-onKeyDown "3"       s = addBondShortcut "3" False Triple NoBondStereo s
+onKeyDown "1"       s = addBondShortcut False Single NoBondStereo s
+onKeyDown "2"       s = addBondShortcut False Dbl NoBondStereo s
+onKeyDown "3"       s = addBondShortcut False Triple NoBondStereo s
 onKeyDown "4"       s = addGroupShortcut phenyl s
 onKeyDown "5"       s = addGroupShortcut (ring 5) s
 onKeyDown "6"       s = addGroupShortcut (readMolfile cy) s
-onKeyDown "7"       s = addBondShortcut "7" True Single Up s 
-onKeyDown "8"       s = addBondShortcut "8" True Single Down s
+onKeyDown "7"       s = addBondShortcut True Single Up s 
+onKeyDown "8"       s = addBondShortcut True Single Down s
 onKeyDown "9"       s = addGroupShortcut (readMolfile ac) s
 onKeyDown x         s = setElemStr (toUpper x) s
 
