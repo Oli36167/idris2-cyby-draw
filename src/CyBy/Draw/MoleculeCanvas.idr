@@ -514,14 +514,17 @@ addGroupShortcut :
         {auto cd : CoreDims}
      -> CDGraph -- For example 'phenyl', '(readMolfile ac)' or '(ring 5)'
      -> DrawState
+     -> Bool -- To determine if anything should happen on an edge
      -> DrawState
-addGroupShortcut g s =
+addGroupShortcut g s bol =
   case hoveredItem s.imol of
     N x => case inAbbreviation s.imol (fst x) of 
       True => s 
       False =>  
            setMol (mergeGraphs s.posId s.mol g) s
-    E e => setMol (mergeGraphs s.posId s.mol g) s
+    E e => if bol then 
+                  setMol (mergeGraphs s.posId s.mol g) s
+            else s
     _ => s 
 
 -- Adds an abbreviation to the molecule if hovering over a valid atom, 
@@ -560,12 +563,12 @@ onKeyDown "0"       s = addAbbrShortcut "Ph" phenyl s
 onKeyDown "1"       s = addBondShortcut False Single NoBondStereo s
 onKeyDown "2"       s = addBondShortcut False Dbl NoBondStereo s
 onKeyDown "3"       s = addBondShortcut False Triple NoBondStereo s
-onKeyDown "4"       s = addGroupShortcut phenyl s
-onKeyDown "5"       s = addGroupShortcut (ring 5) s
-onKeyDown "6"       s = addGroupShortcut (readMolfile cy) s
+onKeyDown "4"       s = addGroupShortcut phenyl s True
+onKeyDown "5"       s = addGroupShortcut (ring 5) s True
+onKeyDown "6"       s = addGroupShortcut (readMolfile cy) s True
 onKeyDown "7"       s = addBondShortcut True Single Up s 
 onKeyDown "8"       s = addBondShortcut True Single Down s
-onKeyDown "9"       s = addGroupShortcut (readMolfile ac) s
+onKeyDown "9"       s = addGroupShortcut (readMolfile ac) s False
 onKeyDown x         s = setElemStr (toUpper x) s
 
 onKeyUp "Shift"   s = {modifier $= reset Shift} s
