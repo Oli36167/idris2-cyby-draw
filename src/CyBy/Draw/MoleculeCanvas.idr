@@ -489,8 +489,10 @@ stopTemplRot : DrawSettings => DrawState -> Mode -> Mode
 stopTemplRot s (RotTempl p g) = SetTempl (rotateTempl False p s.posMol g)
 stopTemplRot s m              = m
 
--- Adds a bond if hovering on a Node (that is not an abbreviation) or changes
--- a bond if hovering on an edge. 
+-- Adds a bond to the molecule when hovering over a node 
+-- (excluding nodes that are abbreviations),
+-- or changes the bond type (e.g., from Single to Triple) when 
+-- hovering over an edge with NoBondStereo.
 addBondShortcut :
      {auto cd : CoreDims}
   -> String
