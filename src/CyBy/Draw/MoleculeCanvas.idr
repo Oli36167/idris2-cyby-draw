@@ -489,8 +489,10 @@ stopTemplRot : DrawSettings => DrawState -> Mode -> Mode
 stopTemplRot s (RotTempl p g) = SetTempl (rotateTempl False p s.posMol g)
 stopTemplRot s m              = m
 
--- Adds a bond to the molecule if hovering over a valid atom, 
--- ensuring it's not an abbreviation. 
+-- Adds a bond to the molecule when hovering over a node 
+-- (excluding nodes that are abbreviations),
+-- or changes the bond type (e.g., from Single to Triple) when 
+-- hovering over an edge with NoBondStereo.
 addBondShortcut :
      {auto cd : CoreDims}
   -> Bool
@@ -506,7 +508,11 @@ addBondShortcut bol bo bs s =
        let bnd   := MkBond bol bo bs
            G _ g := ifHover Origin s.mol
         in setMol (hoverIfNew (addBond {t = Id} False Nothing bnd g)) s
-    _ => s  -- If not hovering over a valid atom, do nothing
+    E (E x y $ CB r b) =>
+      if bs == NoBondStereo then
+          setMol (G _ $ insEdge (E x y $ CB r (cast bo)) s.imol) s
+      else s
+    _ => s  -- If not hovering over a valid atom or Edge, do nothing
 
 -- Adds a group to the molecule if hovering over a valid atom or bond, 
 -- ensuring it's not an abbreviation. 
