@@ -553,8 +553,11 @@ addAbbrShortcut l g s =
         setMol (setAbbreviation False l s.posId g s.mol) s
     _ => s  -- If not hovering over a valid atom, do nothing
 
+-- This hole should be filled with a function that gets all neighbours,
+-- then finds the optimal neighbour if there even is one, and then sets the role
+-- on this neighbour to 'New'. hoverIfNew and setMol will do the rest :-)
 navigation : DrawState -> DrawState
-navigation s = setMol (hoverIfNew s.mol) s
+navigation s = setMol (hoverIfNew ?h s.mol) s
 
 ---- In the end this will be either a new s or the old s, instead of
 ---- Maybe (List ..)
