@@ -553,32 +553,40 @@ addAbbrShortcut l g s =
         setMol (setAbbreviation False l s.posId g s.mol) s
     _ => s  -- If not hovering over a valid atom, do nothing
 
--- This hole should be filled with a function that gets all neighbours,
--- then finds the optimal neighbour if there even is one, and then sets the role
--- on this neighbour to 'New'. hoverIfNew and setMol will do the rest :-)
-navigation : DrawState -> DrawState
-navigation s = setMol (hoverIfNew ?h s.mol) s
-
----- In the end this will be either a new s or the old s, instead of
----- Maybe (List ..)
-visibleHoverNeighbours : CDGraph -> Maybe (k ** List (Fin k))
-visibleHoverNeighbours (G k g) =
+-- This will return a Maybe (List (Fin k)) of possible visible neighbours
+-- if one hovers on anything.
+visibleHoverNeighbours : {k : _} -> CDIGraph k -> Maybe (List (Fin k))
+visibleHoverNeighbours g =
   case find (is Hover . snd) (labNodes g) of
     Nothing     => Nothing
-    Just (n1,_) => Just (k ** visibleNeighbours g n1)
+    Just (n1,_) => Just (visibleNeighbours g n1)
+
+-- this will find the smallest angle and return the corresponding Fin k
+smallestAngle : {k : _} -> Maybe (List (Fin k)) -> Maybe (Fin k)
+smallestAngle Nothing = Nothing
+smallestAngle (Just x) = ?smallestAngle_rhs_1
 
 -- This will get us the Fin k for the new Node
 -- ?f will be the function that determines the node with the best angle to 
 -- the input
-newNode : CDGraph -> Maybe (k ** List (Fin k)) -> Fin k
-newNode a b = ?f visibleHoverNeighbours a
+newNode : {k : _} -> CDIGraph k -> Maybe (Fin k)
+newNode a = smallestAngle (visibleHoverNeighbours a)
 
--- this will find the smallest angle and return the corresponding Fin k
-smallestAngle : Maybe (k ** List (Fin k)) -> Fin k
-smallestAngle x = ?smallestAngle_rhs
+-- This should set the Role 'New' onto a given node k.
+setHover : {k : _} -> Maybe (Fin k) -> CDIGraph k -> CDIGraph k
+setHover Nothing  g = g
+setHover (Just x) g = mapWithCtxt (\i, (A a _) => setIf New (i == x) a) g
 
--- This will set the Role Hover onto the found node. 
-setHover : Fin k -> CDGraph -> CDGraph
+-- This hole should be filled with a function that gets all neighbours,
+-- then finds the optimal neighbour if there even is one, and then sets the role
+-- on this neighbour to 'New'. hoverIfNew and setMol will do the rest :-)
+navigation : DrawState -> DrawState
+navigation s = case s.mol of
+  G k g =>
+    let g' = setHover (newNode g) g
+     in setMol (G k g') s
+  _     => s
+
 
 onKeyDown, onKeyUp : DrawSettings => String -> DrawState -> DrawState
 onKeyDown "Escape"  s = {mode := Select, mol $= clear} s
@@ -590,10 +598,10 @@ onKeyDown "Meta"    s = {modifier := Ctrl, mode $= startTemplRot s} s
 --onKeyDown "ArrowUp"   s = modAtom {elem $= incIso} s
 --onKeyDown "ArrowDown" s = modAtom {elem $= decIso} s
 
-onKeyDown "ArrowUp"    s = ?navigation'    s
-onKeyDown "ArrowDown"  s = ?navigation''   s
-onKeyDown "ArrowLeft"  s = ?navigation'''  s
-onKeyDown "ArrowRight" s = ?navigation'''' s
+onKeyDown "ArrowUp"    s = navigation s
+onKeyDown "ArrowDown"  s = navigation s
+onKeyDown "ArrowLeft"  s = navigation s
+onKeyDown "ArrowRight" s = navigation s
 
 onKeyDown "+"       s = ifCtrl (zoomIn True) (modAtom {charge $= incCharge}) s
 onKeyDown "-"       s = ifCtrl (zoomOut True) (modAtom {charge $= decCharge}) s
