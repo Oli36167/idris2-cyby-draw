@@ -561,16 +561,32 @@ visibleHoverNeighbours g =
     Nothing     => Nothing
     Just (n1,_) => Just (visibleNeighbours g n1)
 
+-- These type descriptions are missing some 'Maybe's
+------------------------------------------------------------------------------
+-- this is supposed to find all angles from the currently hovered atom
+-- to its neighbours
+findAngles : Fin k -> List (Fin k) -> List Angle
+
+findFink : Angle -> List (Fin k) -> Fin k
+
+findminAngle : List Angle -> Angle
+------------------------------------------------------------------------------
+
+
 -- this will find the smallest angle and return the corresponding Fin k
-smallestAngle : {k : _} -> Maybe (List (Fin k)) -> Maybe (Fin k)
-smallestAngle Nothing = Nothing
-smallestAngle (Just x) = ?smallestAngle_rhs_1
+smallestAngle : {k : _} -> Angle -> CDIGraph k -> Maybe (List (Fin k)) -> Maybe (Fin k)
+smallestAngle a g Nothing = Nothing
+-- Just use this instead of '?mini':
+-- closestAngle myAngle listOfAngles
+smallestAngle a g (Just x) = if ?findAngles' a < (Geom.Angle.angle (3 * pi / 8))
+                                then Just ?h2
+                                else Nothing
 
 -- This will get us the Fin k for the new Node
 -- ?f will be the function that determines the node with the best angle to 
 -- the input
-newNode : {k : _} -> CDIGraph k -> Maybe (Fin k)
-newNode a = smallestAngle (visibleHoverNeighbours a)
+newNode : {k : _} -> Angle -> CDIGraph k -> Maybe (Fin k)
+newNode a g = smallestAngle a g (visibleHoverNeighbours g)
 
 -- This should set the Role 'New' onto a given node k.
 setHover : {k : _} -> Maybe (Fin k) -> CDIGraph k -> CDIGraph k
@@ -580,12 +596,13 @@ setHover (Just x) g = mapWithCtxt (\i, (A a _) => setIf New (i == x) a) g
 -- This hole should be filled with a function that gets all neighbours,
 -- then finds the optimal neighbour if there even is one, and then sets the role
 -- on this neighbour to 'New'. hoverIfNew and setMol will do the rest :-)
-navigation : DrawState -> DrawState
-navigation s = case s.mol of
+navigation : Angle -> DrawState -> DrawState
+navigation a s = case s.mol of
   G k g =>
-    let g' = setHover (newNode g) g
-     in setMol (G k g') s
-  _     => s
+    let g'  = setHover (newNode a g) g  -- set 'New' on the best neighbour
+        g'' = G k g'                    -- wrap back into CDGraph
+     in setMol (hoverIfNew g'') s       -- unset old 'Hover' replace 'New' with 'Hover'
+  _ => s
 
 
 onKeyDown, onKeyUp : DrawSettings => String -> DrawState -> DrawState
@@ -598,10 +615,10 @@ onKeyDown "Meta"    s = {modifier := Ctrl, mode $= startTemplRot s} s
 --onKeyDown "ArrowUp"   s = modAtom {elem $= incIso} s
 --onKeyDown "ArrowDown" s = modAtom {elem $= decIso} s
 
-onKeyDown "ArrowUp"    s = navigation s
-onKeyDown "ArrowDown"  s = navigation s
-onKeyDown "ArrowLeft"  s = navigation s
-onKeyDown "ArrowRight" s = navigation s
+onKeyDown "ArrowUp"    s = navigation zero s
+onKeyDown "ArrowRight" s = navigation halfPi s
+onKeyDown "ArrowDown"  s = navigation pi s
+onKeyDown "ArrowLeft"  s = navigation threeHalfPi s
 
 onKeyDown "+"       s = ifCtrl (zoomIn True) (modAtom {charge $= incCharge}) s
 onKeyDown "-"       s = ifCtrl (zoomOut True) (modAtom {charge $= decCharge}) s
