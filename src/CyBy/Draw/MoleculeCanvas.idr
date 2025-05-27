@@ -567,20 +567,28 @@ visibleHoverNeighbours g =
 -- to its neighbours
 findAngles : Fin k -> List (Fin k) -> List Angle
 
-findFink : Angle -> List (Fin k) -> Fin k
+-- This should find a certain angle in a list and return the position of 
+-- the angle of the list as a Fin k. If there are multiple in the list that match
+-- the input angle, the function should return Nothing.
+findFink : Angle -> List Angle -> Maybe (Fin k)
+-- this might not work for list, but it should work for a vector.
 
-findminAngle : List Angle -> Angle
+-- Todo:
+-- 1) change the type description of findAngles so it returns a Maybe (List Angle)
+-- 2) change smallestAngle, so that we have the currently hovered atom accessible
+--    as Fin k
+-- 3) use closestAngle myAngle listOfAngles
 ------------------------------------------------------------------------------
-
 
 -- this will find the smallest angle and return the corresponding Fin k
 smallestAngle : {k : _} -> Angle -> CDIGraph k -> Maybe (List (Fin k)) -> Maybe (Fin k)
 smallestAngle a g Nothing = Nothing
--- Just use this instead of '?mini':
--- closestAngle myAngle listOfAngles
-smallestAngle a g (Just x) = if ?findAngles' a < (Geom.Angle.angle (3 * pi / 8))
-                                then Just ?h2
-                                else Nothing
+smallestAngle a g (Just x) =
+  case closestAngle a (findAngles ?startingpointFink x) of
+    Just a' => if a' < Geom.Angle.angle (3 * pi / 8)
+                   then findFink ?minAngle ?listOfAngles
+                   else Nothing
+    Nothing => Nothing
 
 -- This will get us the Fin k for the new Node
 -- ?f will be the function that determines the node with the best angle to 
