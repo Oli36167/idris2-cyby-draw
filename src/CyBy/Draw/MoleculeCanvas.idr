@@ -552,92 +552,68 @@ addAbbrShortcut l g s =
         in 
         setMol (setAbbreviation False l s.posId g s.mol) s
     _ => s  -- If not hovering over a valid atom, do nothing
-
--- This will return a Maybe (List (Fin k)) of possible visible neighbours
--- if one hovers on anything.
-visibleHoverNeighbours : {k : _} -> CDIGraph k -> Maybe (List (Fin k))
-visibleHoverNeighbours g =
-  case find (is Hover . snd) (labNodes g) of
-    Nothing     => Nothing
-    Just (n1,_) => Just (visibleNeighbours g n1)
-
 ------------------------------------------------------------------------------
--- This should find a certain angle in a list and return the position of 
--- the angle of the list as a Fin k. If there are multiple in the list that match
--- the input angle, the function should return Nothing.
-findFink : Angle -> List Angle -> Maybe (Fin k)
-findFink x xs = ?findFink_rhs
--- this might not work for list, but it should work for a vector.
+-- Returning a list of pairs with bond angles and the corresponding
+-- 'global' Fin k of all visible neighbours.
+bondAnglesWithNodes : CDIGraph k -> Fin k -> List (Angle, Fin k)
+bondAnglesWithNodes g x =
+  let p  = pointId (lab g x)
+      ns = visibleNeighbours g x
+  in mapMaybe (\fn =>
+        case angle $ pointId (lab g fn) - p of
+          Just a  => Just (a, fn)
+          Nothing => Nothing
+     ) ns
 
---findFink'' : Eq Angle => Angle -> List Angle -> Maybe (Fin k)
---findFink'' target xs =
---  case toVect (length xs) xs of
---    Just vect =>
---      case findIndices (\x => x == target) vect of
---        [i] => Just i
---        _   => Nothing
---    Nothing => Nothing -- should never happen
+-- Compares the input Angle to a List with pairs of bond angles with
+-- their corresponding 'global' Fin k. Returns the Fin k of the FIRST
+-- matching angle of the list.
+-- (The case of multiple matching angles will be covered once
+-- a navigation prototype works.)
+findFink : Eq Angle => Angle -> List (Angle, Fin k) -> Maybe (Fin k)
+findFink target [] = Nothing
+findFink target ((a, i) :: rest) =
+  if a == target then Just i else findFink target rest
 
-findFink' : 
-  Eq Angle 
-  => (target : Angle) 
-  -> (xs : List Angle) 
-  -> Maybe (Fin (length xs))
-findFink' target xs =
-  case toVect (length xs) xs of
-    Just vect =>
-      case findIndices (\x => x == target) vect of
-        [i] => Just i
-        _   => Nothing
-    Nothing => Nothing -- impossible because length is consistent
-------------------------------------------------------------------------------
--- this should return the Fin k of the node that is currently hovered.
+-- Returns the Fin k of the node that is currently hovered.
 activeFink : {k : _} -> CDIGraph k -> Maybe (Fin k)
 activeFink g = case hoveredItem g of
   N (i, _) => Just i
   _        => Nothing
-------------------------------------------------------------------------------
 
--- this will find the smallest angle and return the corresponding Fin k
-smallestAngle : 
+-- Finds the the neighbour with the smallest delta of the bond angle to the 
+-- input angle and returns its 'global' Fin k.
+newNode : 
      {k : _} 
   -> Angle 
   -> CDIGraph k 
-  -> Maybe (List (Fin k)) 
   -> Maybe (Fin k)
-smallestAngle a g Nothing = Nothing
-smallestAngle a g (Just x) =
+newNode a g =
   case activeFink g of
     Just i =>
       case closestAngle a (bondAngles g i) of
-        Just a' => if a' < Geom.Angle.angle (3 * pi / 8)
-                   then findFink a' (bondAngles g i)
+                   -- makes sure the delta of the angles is not too big   
+        Just a' => if (delta a' a) < Geom.Angle.angle (7 * pi / 16)
+                   then findFink a' (bondAnglesWithNodes g i)
                    else Nothing
         Nothing => Nothing
     Nothing => Nothing
 
--- This will get us the Fin k for the new Node
--- ?f will be the function that determines the node with the best angle to 
--- the input
-newNode : {k : _} -> Angle -> CDIGraph k -> Maybe (Fin k)
-newNode a g = smallestAngle a g (visibleHoverNeighbours g)
+-- Sets the Role 'New' onto a given node Fin k.
+setNew : {k : _} -> Maybe (Fin k) -> CDIGraph k -> CDIGraph k
+setNew Nothing  g = g
+setNew (Just x) g = mapWithCtxt (\i, (A a _) => setIf New (i == x) a) g
 
--- This should set the Role 'New' onto a given node k.
-setHover : {k : _} -> Maybe (Fin k) -> CDIGraph k -> CDIGraph k
-setHover Nothing  g = g
-setHover (Just x) g = mapWithCtxt (\i, (A a _) => setIf New (i == x) a) g
-
--- This hole should be filled with a function that gets all neighbours,
--- then finds the optimal neighbour if there even is one, and then sets the role
--- on this neighbour to 'New'. hoverIfNew and setMol will do the rest :-)
+-- First the Role 'New' is set on the neighbouring node with the smallest
+-- delta of input angle and bond angle. Then all Roles 'Hover' are removed
+-- and the Role 'New' is replaced with 'Hover'.
 navigation : Angle -> DrawState -> DrawState
 navigation a s = case s.mol of
   G k g =>
-    let g'  = setHover (newNode a g) g  -- set 'New' on the best neighbour
-        g'' = G k g'                    -- wrap back into CDGraph
-     in setMol (hoverIfNew g'') s       -- unset old 'Hover' replace 'New' with 'Hover'
-  _ => s
-
+    let g'  = setNew (newNode a g) g  
+        g'' = G k g'                  
+     in setMol (hoverIfNew g'') s     
+------------------------------------------------------------------------------
 
 onKeyDown, onKeyUp : DrawSettings => String -> DrawState -> DrawState
 onKeyDown "Escape"  s = {mode := Select, mol $= clear} s
