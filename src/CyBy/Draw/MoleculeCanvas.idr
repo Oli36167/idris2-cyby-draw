@@ -561,33 +561,59 @@ visibleHoverNeighbours g =
     Nothing     => Nothing
     Just (n1,_) => Just (visibleNeighbours g n1)
 
--- These type descriptions are missing some 'Maybe's
 ------------------------------------------------------------------------------
--- this is supposed to find all angles from the currently hovered atom
--- to its neighbours
-findAngles : Fin k -> List (Fin k) -> List Angle
-
 -- This should find a certain angle in a list and return the position of 
 -- the angle of the list as a Fin k. If there are multiple in the list that match
 -- the input angle, the function should return Nothing.
 findFink : Angle -> List Angle -> Maybe (Fin k)
+findFink x xs = ?findFink_rhs
 -- this might not work for list, but it should work for a vector.
 
--- Todo:
--- 1) change the type description of findAngles so it returns a Maybe (List Angle)
--- 2) change smallestAngle, so that we have the currently hovered atom accessible
---    as Fin k
--- 3) use closestAngle myAngle listOfAngles
+--findFink'' : Eq Angle => Angle -> List Angle -> Maybe (Fin k)
+--findFink'' target xs =
+--  case toVect (length xs) xs of
+--    Just vect =>
+--      case findIndices (\x => x == target) vect of
+--        [i] => Just i
+--        _   => Nothing
+--    Nothing => Nothing -- should never happen
+
+findFink' : 
+  Eq Angle 
+  => (target : Angle) 
+  -> (xs : List Angle) 
+  -> Maybe (Fin (length xs))
+findFink' target xs =
+  case toVect (length xs) xs of
+    Just vect =>
+      case findIndices (\x => x == target) vect of
+        [i] => Just i
+        _   => Nothing
+    Nothing => Nothing -- impossible because length is consistent
+------------------------------------------------------------------------------
+-- this should return the Fin k of the node that is currently hovered.
+activeFink : {k : _} -> CDIGraph k -> Maybe (Fin k)
+activeFink g = case hoveredItem g of
+  N (i, _) => Just i
+  _        => Nothing
 ------------------------------------------------------------------------------
 
 -- this will find the smallest angle and return the corresponding Fin k
-smallestAngle : {k : _} -> Angle -> CDIGraph k -> Maybe (List (Fin k)) -> Maybe (Fin k)
+smallestAngle : 
+     {k : _} 
+  -> Angle 
+  -> CDIGraph k 
+  -> Maybe (List (Fin k)) 
+  -> Maybe (Fin k)
 smallestAngle a g Nothing = Nothing
 smallestAngle a g (Just x) =
-  case closestAngle a (findAngles ?startingpointFink x) of
-    Just a' => if a' < Geom.Angle.angle (3 * pi / 8)
-                   then findFink ?minAngle ?listOfAngles
+  case activeFink g of
+    Just i =>
+      case closestAngle a (bondAngles g i) of
+        Just a' => if a' < Geom.Angle.angle (3 * pi / 8)
+                   then findFink a' (bondAngles g i)
                    else Nothing
+        Nothing => Nothing
     Nothing => Nothing
 
 -- This will get us the Fin k for the new Node
