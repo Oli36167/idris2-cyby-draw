@@ -608,37 +608,52 @@ newNode a g =
               let match = findFink a' (bondAnglesWithNodes g i) in
               match
             else (activeFink g)
-        Nothing => Nothing
-    Nothing => Nothing
+        Nothing => trace "newNode: no closest angle found, returning Nothing" Nothing
+    Nothing => trace "newNode: no active node found, returning Nothing" Nothing
+        --Nothing => Nothing
+    --Nothing => Nothing
 
--- Sets the Role 'New' onto a given node Fin k.
-setNew : {k : _} -> Maybe (Fin k) -> CDIGraph k -> CDIGraph k
-setNew Nothing g  = g
--- Do not remove this: this is for node to node navigation.
---setNew (Just x) g = mapWithCtxt (\i, (A a _) => setIf New (i == x) a) g
+bestPointId : Angle -> (Point Id, Fin k) -> (Point Id, Fin k) -> Fin k
+bestPointId a (p1, i1) (p2, i2) =
+  case a of
+       zero        => if p1.x >= p2.x then i1 else i2
+       halfPi      => if p1.y <= p2.y then i1 else i2
+       pi          => if p1.x <= p2.x then i1 else i2
+       threeHalfPi => if p1.y >= p2.y then i1 else i2
 
--- node to edge navigation 
-setNew (Just x) g = case activeFink g of
-                           Just y => mapCtxt (hoverE x y) g
-                           _      => g
+setNew : 
+     {k : _} 
+  -> Maybe (Fin k) 
+  -> CDIGraph k 
+  -> DrawState 
+  -> Angle 
+  -> CDIGraph k
+setNew Nothing g s a = case hoveredItem g of
+  E (E x y _) =>
+    let px = pointAt g x
+        py = pointAt g y
+        winner = bestPointId a (px, x) (py, y)
+       in trace ("winner: " ++ show winner) $
+  mapWithCtxt (\i, (A a _) => setIf New (i == winner) a) g
+  _ => g
+setNew (Just z) g s a = case hoveredItem g of
+  N x => case activeFink g of
+           Just y => mapCtxt (hoverE z y) g
+           _      => g
+  _ => g
 
 -- First the Role 'New' is set on the neighbouring node with the smallest
 -- delta of input angle and bond angle. Then all Roles 'Hover' are removed
 -- and the Role 'New' is replaced with 'Hover'.
 navigation : Angle -> DrawState -> DrawState
 navigation a s = case s.mol of
-  G k g =>
-    case hoveredItem s.imol of
-              -- This should be the node to edge navigation 
-              -- instead of node to node
-         N x => let g'  = setNew (newNode a g) g  
+                      -- I think here because edges and nodes
+                      -- are handled differently, the roles are
+                      -- set a bit chaotic leading it to not work.
+  G k g =>      let g'  = unHover (setNew (newNode a g) g s a)
                     g'' = G k g'                  
                  in {mol := (hoverIfNew g'')} s
-                  -- This will be the edge to node navigation 
-         E e => s -- pointAT (Graph.idr line: 294) should be helpful
-                  -- to get the two possible node positions.
-         _   => s
-
+                           
 ------------------------------------------------------------------------------
 
 onKeyDown, onKeyUp : DrawSettings => String -> DrawState -> DrawState
