@@ -506,7 +506,7 @@ addBondShortcut :
 addBondShortcut bol bo bs s =
   case hoveredItem s.imol of
     N x => case inAbbreviation s.imol (fst x) of
-      True => s
+      True  => s
       False =>
        let bnd   := MkBond bol bo bs
            G _ g := ifHover Origin s.mol
@@ -528,7 +528,7 @@ addGroupShortcut :
 addGroupShortcut g s bol =
   case hoveredItem s.imol of
     N x => case inAbbreviation s.imol (fst x) of 
-      True => s 
+      True  => s 
       False =>  
            setMol (mergeGraphs s.posId s.mol g) s
     E e => if bol then 
@@ -547,12 +547,12 @@ addAbbrShortcut :
 addAbbrShortcut l g s =
   case hoveredItem s.imol of
     N x => case inAbbreviation s.imol (fst x) of
-      True => s
+      True  => s
       False =>
         let s = {mol $= ifHover Origin} s  -- First set the Origin flag 
         in 
         setMol (setAbbreviation False l s.posId g s.mol) s
-    _ => s  -- If not hovering over a valid atom, do nothing
+    _   => s  -- If not hovering over a valid atom, do nothing
 ------------------------------------------------------------------------------
 -- Returning a list of pairs with bond angles and the corresponding
 -- 'global' Fin k of all visible neighbours.
@@ -614,7 +614,13 @@ newNode a g =
 -- Sets the Role 'New' onto a given node Fin k.
 setNew : {k : _} -> Maybe (Fin k) -> CDIGraph k -> CDIGraph k
 setNew Nothing g  = g
-setNew (Just x) g = mapWithCtxt (\i, (A a _) => setIf New (i == x) a) g
+-- Do not remove this: this is for node to node navigation.
+--setNew (Just x) g = mapWithCtxt (\i, (A a _) => setIf New (i == x) a) g
+
+-- node to edge navigation 
+setNew (Just x) g = case activeFink g of
+                           Just y => mapCtxt (hoverE x y) g
+                           _      => g
 
 -- First the Role 'New' is set on the neighbouring node with the smallest
 -- delta of input angle and bond angle. Then all Roles 'Hover' are removed
@@ -622,9 +628,16 @@ setNew (Just x) g = mapWithCtxt (\i, (A a _) => setIf New (i == x) a) g
 navigation : Angle -> DrawState -> DrawState
 navigation a s = case s.mol of
   G k g =>
-    let g'  = setNew (newNode a g) g  
-        g'' = G k g'                  
-     in {mol := (hoverIfNew g'')} s
+    case hoveredItem s.imol of
+              -- This should be the node to edge navigation 
+              -- instead of node to node
+         N x => let g'  = setNew (newNode a g) g  
+                    g'' = G k g'                  
+                 in {mol := (hoverIfNew g'')} s
+                  -- This will be the edge to node navigation 
+         E e => s -- pointAT (Graph.idr line: 294) should be helpful
+                  -- to get the two possible node positions.
+         _   => s
 
 ------------------------------------------------------------------------------
 
