@@ -375,6 +375,7 @@ cleanup = bimap (keep Persistent) (keep Persistent)
 unHover : {k : _} -> CDIGraph k -> CDIGraph k
 unHover = bimap (unset Hover) (unset Hover)
 
+export
 hoverE : Fin k -> Fin k -> Fin k -> Adj k CDBond CDAtom -> Adj k CDBond CDAtom
 hoverE x y z (A a ns) =
   if x == z || y == z
