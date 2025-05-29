@@ -16,6 +16,7 @@ import Derive.Prelude
 import Geom
 import Text.Molfile
 import Text.SVG
+import Debug.Trace
 
 %default total
 %language ElabReflection
@@ -581,27 +582,38 @@ activeFink g = case hoveredItem g of
   N (i, _) => Just i
   _        => Nothing
 
+-- Returns the shortest distance between two angles
+delta' : Angle -> Angle -> Angle
+delta' (A x _) (A y _) =
+  let delta    = abs (x - y)
+      circDelta = 2 * pi - delta
+  in angle (min delta circDelta)
+
+closestAngle' : Angle -> List Angle -> Maybe Angle
+closestAngle' = minBy . delta'
+
 -- Finds the the neighbour with the smallest delta of the bond angle to the 
 -- input angle and returns its 'global' Fin k.
-newNode : 
-     {k : _} 
-  -> Angle 
-  -> CDIGraph k 
-  -> Maybe (Fin k)
+newNode : {k : _} -> Angle -> CDIGraph k -> Maybe (Fin k)
 newNode a g =
   case activeFink g of
     Just i =>
-      case closestAngle a (bondAngles g i) of
-                   -- makes sure the delta of the angles is not too big   
-        Just a' => if (delta a' a) < Geom.Angle.angle (7 * pi / 16)
-                   then findFink a' (bondAnglesWithNodes g i)
-                   else Nothing
+      let angles = bondAngles g i in
+      case closestAngle' a angles of
+        Just a' =>
+          let d = delta' a' a in
+          -- makes sure the delta of the angles is not too big   
+          if d < Geom.Angle.angle (7 * pi / 16)
+            then
+              let match = findFink a' (bondAnglesWithNodes g i) in
+              match
+            else (activeFink g)
         Nothing => Nothing
     Nothing => Nothing
 
 -- Sets the Role 'New' onto a given node Fin k.
 setNew : {k : _} -> Maybe (Fin k) -> CDIGraph k -> CDIGraph k
-setNew Nothing  g = g
+setNew Nothing g  = g
 setNew (Just x) g = mapWithCtxt (\i, (A a _) => setIf New (i == x) a) g
 
 -- First the Role 'New' is set on the neighbouring node with the smallest
@@ -612,7 +624,8 @@ navigation a s = case s.mol of
   G k g =>
     let g'  = setNew (newNode a g) g  
         g'' = G k g'                  
-     in setMol (hoverIfNew g'') s     
+     in {mol := (hoverIfNew g'')} s
+
 ------------------------------------------------------------------------------
 
 onKeyDown, onKeyUp : DrawSettings => String -> DrawState -> DrawState
@@ -625,10 +638,10 @@ onKeyDown "Meta"    s = {modifier := Ctrl, mode $= startTemplRot s} s
 --onKeyDown "ArrowUp"   s = modAtom {elem $= incIso} s
 --onKeyDown "ArrowDown" s = modAtom {elem $= decIso} s
 
-onKeyDown "ArrowUp"    s = navigation zero s
-onKeyDown "ArrowRight" s = navigation halfPi s
-onKeyDown "ArrowDown"  s = navigation pi s
-onKeyDown "ArrowLeft"  s = navigation threeHalfPi s
+onKeyDown "ArrowUp"    s = navigation threeHalfPi s
+onKeyDown "ArrowRight" s = navigation zero s
+onKeyDown "ArrowDown"  s = navigation halfPi s
+onKeyDown "ArrowLeft"  s = navigation pi s
 
 onKeyDown "+"       s = ifCtrl (zoomIn True) (modAtom {charge $= incCharge}) s
 onKeyDown "-"       s = ifCtrl (zoomOut True) (modAtom {charge $= decCharge}) s
