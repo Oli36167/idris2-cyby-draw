@@ -371,7 +371,7 @@ export %inline
 cleanup : CDGraph -> CDGraph
 cleanup = bimap (keep Persistent) (keep Persistent)
 
-%inline
+export %inline
 unHover : {k : _} -> CDIGraph k -> CDIGraph k
 unHover = bimap (unset Hover) (unset Hover)
 
