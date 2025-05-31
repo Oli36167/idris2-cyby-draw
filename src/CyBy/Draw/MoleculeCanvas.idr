@@ -607,11 +607,10 @@ newNode a g =
             then
               let match = findFink a' (bondAnglesWithNodes g i) in
               match
-            else (activeFink g)
+            else trace ("newNode: angle delta " ++ show d ++
+                        " too large, returning current active " ++ show i) (Just i)
         Nothing => trace "newNode: no closest angle found, returning Nothing" Nothing
     Nothing => trace "newNode: no active node found, returning Nothing" Nothing
-        --Nothing => Nothing
-    --Nothing => Nothing
 
 bestPointId : Angle -> (Point Id, Fin k) -> (Point Id, Fin k) -> Fin k
 bestPointId a (p1, i1) (p2, i2) =
@@ -638,9 +637,44 @@ setNew Nothing g s a = case hoveredItem g of
   _ => g
 setNew (Just z) g s a = case hoveredItem g of
   N x => case activeFink g of
+           Just y => if y == z then 
+                               mapWithCtxt (\i, (A a _) => setIf New (i == y) a) g
+                      else mapCtxt (hoverE z y) g
+           _      => g
+  _ => g
+
+setHover : 
+     {k : _} 
+  -> Maybe (Fin k) 
+  -> CDIGraph k 
+  -> DrawState 
+  -> Angle 
+  -> CDIGraph k
+setHover Nothing g s a = case hoveredItem g of
+  E (E x y _) =>
+    let px = pointAt g x
+        py = pointAt g y
+        winner = bestPointId a (px, x) (py, y)
+       in trace ("winner: " ++ show winner) $
+  mapWithCtxt (\i, (A a _) => setIf Hover (i == winner) a) g
+  _ => g
+setHover (Just z) g s a = case hoveredItem g of
+  N x => case activeFink g of
            Just y => mapCtxt (hoverE z y) g
            _      => g
   _ => g
+||| 'New' is replaced with 'Hover', and any existing 'Hover' roles are removed.
+export
+hoverIfNew'' : CDGraph -> CDGraph
+hoverIfNew'' = bimap (New `replaceWith` Hover) (New `replaceWith` Hover)
+
+
+||| 'New' is replaced with 'Hover', and any existing 'Hover' roles are removed.
+export
+hoverIfNew' : CDGraph -> Maybe (Fin k) -> CDGraph
+hoverIfNew' g n = case n of
+                       Just i  => hoverIfNew   g
+                       Nothing => hoverIfNew'' g 
 
 -- First the Role 'New' is set on the neighbouring node with the smallest
 -- delta of input angle and bond angle. Then all Roles 'Hover' are removed
@@ -650,10 +684,10 @@ navigation a s = case s.mol of
                       -- I think here because edges and nodes
                       -- are handled differently, the roles are
                       -- set a bit chaotic leading it to not work.
-  G k g =>      let g'  = unHover (setNew (newNode a g) g s a)
+  G k g =>      let n   = (newNode a g)
+                    g'  = (setNew n g s a)
                     g'' = G k g'                  
-                 in {mol := (hoverIfNew g'')} s
-                           
+                 in {mol := hoverIfNew' g'' n} s
 ------------------------------------------------------------------------------
 
 onKeyDown, onKeyUp : DrawSettings => String -> DrawState -> DrawState
