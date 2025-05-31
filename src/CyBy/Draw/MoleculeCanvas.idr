@@ -614,11 +614,11 @@ newNode a g =
 
 bestPointId : Angle -> (Point Id, Fin k) -> (Point Id, Fin k) -> Fin k
 bestPointId a (p1, i1) (p2, i2) =
-  case a of
-       zero        => if p1.x >= p2.x then i1 else i2
-       halfPi      => if p1.y <= p2.y then i1 else i2
-       pi          => if p1.x <= p2.x then i1 else i2
-       threeHalfPi => if p1.y >= p2.y then i1 else i2
+    if      a ==  zero       then if p1.x >= p2.x then i1 else i2
+    else if a == halfPi      then if p1.y >= p2.y then i1 else i2
+    else if a == pi          then if p1.x <= p2.x then i1 else i2
+    else if a == threeHalfPi then if p1.y <= p2.y then i1 else i2
+    else i1
 
 setNew : 
      {k : _} 
