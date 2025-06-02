@@ -549,94 +549,80 @@ addAbbrShortcut l g s =
     N x => case inAbbreviation s.imol (fst x) of
       True  => s
       False =>
-        let s = {mol $= ifHover Origin} s  -- First set the Origin flag 
+        let s := {mol $= ifHover Origin} s  -- First set the Origin flag 
         in 
         setMol (setAbbreviation False l s.posId g s.mol) s
     _   => s  -- If not hovering over a valid atom, do nothing
+
 ------------------------------------------------------------------------------
 -- Improve doc!!!!!!!!
 -- Returning a list of pairs with bond angles and the corresponding
 -- 'global' Fin k of all visible neighbours.
 bondAnglesWithNodes : CDIGraph k -> Fin k -> List (Angle, Fin k)
 bondAnglesWithNodes g x =
-  let p  = pointId (lab g x)
-      ns = visibleNeighbours g x
-  in mapMaybe (\fn =>
-        case angle $ pointId (lab g fn) - p of
-          Just a  => Just (a, fn)
-          Nothing => Nothing
-              ) ns
-
--- Improve doc!!!!!!!!
--- Compares the input Angle to a List with pairs of bond angles with
--- their corresponding 'global' Fin k. Returns the Fin k of the FIRST
--- matching angle of the list.
--- (The case of multiple matching angles will be covered once
--- a navigation prototype works.)
-findFink : Eq Angle => Angle -> List (Angle, Fin k) -> Maybe (Fin k)
-findFink target [] = Nothing
-findFink target ((a, i) :: rest) =
-  if a == target then Just i else findFink target rest
-
--- Returns either the hovered node as `Left i`, or hovered edge as `Right (x, y)`.
--- Returns `Nothing` if nothing is hovered.
-activeFink : {k : _} -> CDIGraph k -> Maybe (Either (Fin k) (Fin k, Fin k))
-activeFink g = case hoveredItem g of
-  N (i, _)     => Just (Left i)
-  E (E x y _)  => Just (Right (x, y))
-  _            => Nothing
+  let p  := pointId (lab g x)
+      ns := visibleNeighbours g x
+  in mapMaybe (\fn => (,fn) <$> angle (pointId (lab g fn) - p)) ns
+  -- in mapMaybe (\fn => map (,fn) (angle $ pointId (lab g fn) - p)) ns
 
 -- Geom.Angle?
 -- Returns the shortest distance between two angles. 
 -- (either clockwise or counterclockwise.)
-delta' : Angle -> Angle -> Angle
-delta' x y = min (delta x y) (negate (delta x y))
-
--- Geom.Angle?
--- Returns the angle from the list that is closest to the input angle.
--- (either clockwise or counterclockwise.)
-closestAngle' : Angle -> List Angle -> Maybe Angle
-closestAngle' = minBy . delta'
+minDelta : Angle -> Angle -> Angle
+minDelta x y = min (delta x y) (negate (delta x y))
 
 -- Given an input angle and two nodes (with their positions and indices),
 -- returns the Fin k of the node that lies in the direction most closely
 -- matching the input angle.
 bestPointId : Angle -> (Point Id, Fin k) -> (Point Id, Fin k) -> Fin k
 bestPointId a (p1, i1) (p2, i2) =
-    if      a ==  zero       then if p1.x >= p2.x then i1 else i2
+    if      a == zero        then if p1.x >= p2.x then i1 else i2
     else if a == halfPi      then if p1.y >= p2.y then i1 else i2
     else if a == pi          then if p1.x <= p2.x then i1 else i2
     else if a == threeHalfPi then if p1.y <= p2.y then i1 else i2
     else i1
+
+-- Improve Doc! 
+DirectionMargin : Angle
+DirectionMargin = Geom.Angle.angle (7 * pi / 16)
 
 -- Improve doc!!!!!!!!
 -- Finds the the neighbour with the smallest delta of the bond angle to the 
 -- input angle and returns its 'global' Fin k.
 newNode : {k : _} -> Angle -> CDIGraph k -> Maybe (Fin k)
 newNode a g =
-  case activeFink g of
-    -- Active is Node
-    Just (Left i) =>
-      let angles = bondAngles g i in
-      case closestAngle' a angles of
-        Just a' =>
-          let d = delta' a' a in
-            -- makes sure the delta of the angles is not too big   
-            if d < Geom.Angle.angle (7 * pi / 16)
-            -- New Edge found.
-            then  findFink a' (bondAnglesWithNodes g i)
-            -- No new Edge found, return old Node.
-            else  (Just i)
+  case hoveredItem g of
+    N (i, _) =>
+      case minBy (minDelta a) (bondAngles g i) of
+        Just b =>
+          -- makes sure the delta of the angles is not too big   
+          if minDelta b a < DirectionMargin
+            then lookup b (bondAnglesWithNodes g i)
+            else Nothing
         Nothing         => Nothing
-    -- Active is Edge
-    -- This is missing the case of now Node found, if the angle is bad.
-    Just (Right (x, y)) => let px = pointAt g x
-                               py = pointAt g y
-                              in Just (bestPointId a (px, x) (py, y))
-    _                    => Nothing
+    E (E x y _) =>
+     Just (bestPointId a (pointAt g x, x) (pointAt g y, y))
+    None                => Nothing
+
+-- Improve doc!!!!!!!!
+-- Finds the the neighbour with the smallest delta of the bond angle to the 
+-- input angle and returns its 'global' Fin k.
+newNode' : {k : _} -> Angle -> CDIGraph k -> CDIGraph k
+newNode' a g =
+  case hoveredItem g of
+    N (i, _) =>
+      case minBy (minDelta a) (bondAngles g i) of
+        Just b =>
+          -- makes sure the delta of the angles is not too big   
+          if minDelta b a < DirectionMargin
+            then ?set1 (?unset1 (lookup b (bondAnglesWithNodes g i)))
+            else g
+        Nothing         => g
+    E (E x y _) =>
+     ?set2 (?unset2 (Just (bestPointId a (pointAt g x, x) (pointAt g y, y))))
+    None                => g
 
 -- Improve doc!
-export
 newE : Fin k -> Fin k -> Fin k -> Adj k CDBond CDAtom -> Adj k CDBond CDAtom
 newE x y z (A a ns) =
   if x == z || y == z
@@ -646,40 +632,30 @@ newE x y z (A a ns) =
 -- Improve doc!
 setNew : 
      {k : _} 
-  -> Maybe (Fin k) 
+  -> Fin k
   -> CDIGraph k 
   -> DrawState 
   -> Angle 
   -> CDIGraph k
-setNew (Just z) g s a = 
+setNew z g s a = 
   case hoveredItem g of
-    N x => 
-      case activeFink g of
-        Just (Left y) =>
-          if y == z then mapWithCtxt (\i, (A a _) => setIf New (i == y) a) g
-          else mapCtxt (newE z y) g
-        _ => g
+    N (y,_) => mapCtxt (newE z y) g
+      -- This case is no longer relevant / possible
+      -- if y == z then mapWithCtxt (\i, (A a _) => setIf New (i == y) a) g
     E (E x y _) => mapWithCtxt (\i, (A a _) => setIf New (i == z) a) g
-    _ => g
-setNew Nothing g s a = g
-
--- improve doc!
-||| 'New' is replaced with 'Hover', and any existing 'Hover' roles are removed.
-export
-hoverIfNew' : CDGraph -> Maybe (Fin k) -> CDGraph
-hoverIfNew' g (Just i) = hoverIfNew'' g 
-hoverIfNew' g Nothing  = g 
+    None => g
 
 --- Improve doc!!!!!!!!
 -- First the Role 'New' is set on the neighbouring node with the smallest
 -- delta of input angle and bond angle. Then all Roles 'Hover' are removed
 -- and the Role 'New' is replaced with 'Hover'.
 navigation : Angle -> DrawState -> DrawState
-navigation a s = case s.mol of
-  G k g =>      let n   = (newNode a g)
-                    g'  = (setNew n g s a)
-                    g'' = G k g'                  
-                 in {mol := hoverIfNew' g'' n} s
+navigation a s =
+  let G _ g  := s.mol
+      Just n := newNode a g | Nothing => s
+   in {mol := hoverIfBothNew (G _ $ setNew n g s a)} s
+
+
 ------------------------------------------------------------------------------
 
 onKeyDown, onKeyUp : DrawSettings => String -> DrawState -> DrawState

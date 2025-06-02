@@ -59,7 +59,7 @@ data Mode : Type where
   Drawing     : Maybe Abbreviation -> Mode
   PTable      : (hovered : Maybe Elem) -> Mode
 
-%runElab derive "CyBy.Draw.MoleculeCanvas.Mode" [Show,Eq]
+%runElab derive "CyBy.Draw.MoleculeCanvas2.Mode" [Show,Eq]
 
 endTranslate : Mode -> Mode
 endTranslate (Translating m) = m
@@ -624,7 +624,7 @@ navigation : Angle -> DrawState -> DrawState
 navigation a s =
   let G _ g  := s.mol
       Just n := newNode a g | Nothing => s
-   in {mol := hoverBothIfNew (G _ $ setNew n g s a)} s
+   in {mol := hoverIfBothNew (G _ $ setNew n g s a)} s
 
 ------------------------------------------------------------------------------
 
