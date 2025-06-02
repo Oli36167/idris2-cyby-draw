@@ -443,6 +443,11 @@ export
 hoverIfNew : CDGraph -> CDGraph
 hoverIfNew = map (New `replaceWith` Hover)
 
+||| 'New' is replaced with 'Hover', and any existing 'Hover' roles are removed.
+export
+hoverIfNew'' : CDGraph -> CDGraph
+hoverIfNew'' = bimap (New `replaceWith` Hover) (New `replaceWith` Hover)
+
 ||| Returns the currently hovered edges or atoms atoms
 export %inline
 hoveredItem : {k : _} -> CDIGraph k -> NOE (Fin k, CDAtom) (Edge k CDBond)
