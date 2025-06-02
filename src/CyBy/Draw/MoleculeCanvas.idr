@@ -615,6 +615,7 @@ bestPointId a (p1, i1) (p2, i2) =
 newNode : {k : _} -> Angle -> CDIGraph k -> Maybe (Fin k)
 newNode a g =
   case activeFink g of
+    -- Active is Node
     Just (Left i) =>
       let angles = bondAngles g i in
       case closestAngle' a angles of
@@ -622,9 +623,13 @@ newNode a g =
           let d = delta' a' a in
             -- makes sure the delta of the angles is not too big   
             if d < Geom.Angle.angle (7 * pi / 16)
+            -- New Edge found.
             then  findFink a' (bondAnglesWithNodes g i)
+            -- No new Edge found, return old Node.
             else  (Just i)
         Nothing         => Nothing
+    -- Active is Edge
+    -- This is missing the case of now Node found, if the angle is bad.
     Just (Right (x, y)) => let px = pointAt g x
                                py = pointAt g y
                               in Just (bestPointId a (px, x) (py, y))
@@ -662,9 +667,8 @@ setNew Nothing g s a = g
 ||| 'New' is replaced with 'Hover', and any existing 'Hover' roles are removed.
 export
 hoverIfNew' : CDGraph -> Maybe (Fin k) -> CDGraph
-hoverIfNew' g n = case n of
-  Just i  => hoverIfNew'' g 
-  Nothing => g
+hoverIfNew' g (Just i) = hoverIfNew'' g 
+hoverIfNew' g Nothing  = g 
 
 --- Improve doc!!!!!!!!
 -- First the Role 'New' is set on the neighbouring node with the smallest
