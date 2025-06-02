@@ -565,7 +565,7 @@ bondAnglesWithNodes g x =
         case angle $ pointId (lab g fn) - p of
           Just a  => Just (a, fn)
           Nothing => Nothing
-     ) ns
+              ) ns
 
 -- Improve doc!!!!!!!!
 -- Compares the input Angle to a List with pairs of bond angles with
@@ -620,18 +620,17 @@ newNode a g =
       case closestAngle' a angles of
         Just a' =>
           let d = delta' a' a in
-          -- makes sure the delta of the angles is not too big   
-          if d < Geom.Angle.angle (7 * pi / 16)
-            then
-              let match = findFink a' (bondAnglesWithNodes g i) in
-              match
-            else (Just i)
-        Nothing      => Nothing
+            -- makes sure the delta of the angles is not too big   
+            if d < Geom.Angle.angle (7 * pi / 16)
+            then  findFink a' (bondAnglesWithNodes g i)
+            else  (Just i)
+        Nothing         => Nothing
     Just (Right (x, y)) => let px = pointAt g x
                                py = pointAt g y
                               in Just (bestPointId a (px, x) (py, y))
-    _                   => Nothing
+    _                    => Nothing
 
+-- Improve doc!
 export
 newE : Fin k -> Fin k -> Fin k -> Adj k CDBond CDAtom -> Adj k CDBond CDAtom
 newE x y z (A a ns) =
@@ -639,6 +638,7 @@ newE x y z (A a ns) =
      then A a $ mapKV (\w => setIf New (w == x || w == y)) ns
      else A a ns
 
+-- Improve doc!
 setNew : 
      {k : _} 
   -> Maybe (Fin k) 
@@ -651,16 +651,14 @@ setNew (Just z) g s a =
     N x => 
       case activeFink g of
         Just (Left y) =>
-          if y == z then
-            mapWithCtxt (\i, (A a _) => setIf New (i == y) a) g
-          else
-            mapCtxt (newE z y) g
+          if y == z then mapWithCtxt (\i, (A a _) => setIf New (i == y) a) g
+          else mapCtxt (newE z y) g
         _ => g
-    E (E x y _) => 
-      mapWithCtxt (\i, (A a _) => setIf New (i == z) a) g
+    E (E x y _) => mapWithCtxt (\i, (A a _) => setIf New (i == z) a) g
     _ => g
 setNew Nothing g s a = g
 
+-- improve doc!
 ||| 'New' is replaced with 'Hover', and any existing 'Hover' roles are removed.
 export
 hoverIfNew' : CDGraph -> Maybe (Fin k) -> CDGraph
