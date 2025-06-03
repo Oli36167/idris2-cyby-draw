@@ -17,6 +17,7 @@ import Geom
 import Text.Molfile
 import Text.SVG
 import Debug.Trace
+import Data.Graph.Indexed.Util
 
 %default total
 %language ElabReflection
@@ -586,64 +587,67 @@ bestPointId a (p1, i1) (p2, i2) =
 DirectionMargin : Angle
 DirectionMargin = Geom.Angle.angle (7 * pi / 16)
 
+angleEdge : CDIGraph k -> Fin k -> Fin k -> Maybe Angle
+angleEdge g n1 n2 =
+  let p1 := pointId (lab g n1)
+      p2 := pointId (lab g n2)
+   in angle (p2 - p1)
+
 -- Improve doc!!!!!!!!
 -- Finds the the neighbour with the smallest delta of the bond angle to the 
 -- input angle and returns its 'global' Fin k.
-newNode : {k : _} -> Angle -> CDIGraph k -> Maybe (Fin k)
+--newNode : {k : _} -> Angle -> CDIGraph k -> CDIGraph k
+--newNode a g =
+--  case hoveredItem g of
+--    N (i, _) =>
+--      case minBy (minDelta a) (bondAngles g i) of
+--        Just b =>
+--          -- makes sure the delta of the angles is not too big   
+--          if minDelta b a < DirectionMargin
+--            then case lookup b (bondAnglesWithNodes g i) of
+--                      Just j  => updateEdge j i (set Hover) (updateNode i (unset Hover) g) 
+--                      Nothing => g
+--            else g
+--        Nothing         => g
+--    E (E x y _) => case angleEdge g x y of
+--                        Just angl =>
+--                                    -- Bug
+--                                    if minDelta a angl <= DirectionMargin then 
+--                                      let g := updateEdge x y (unset Hover) g
+--                                          n := bestPointId a (pointAt g x, x) (pointAt g y, y)
+--                                      in updateNode n (set Hover) g
+--                                      else g
+--                        Nothing  => g
+--    None                => g
+
+
+newNode : {k : _} -> Angle -> CDIGraph k -> CDIGraph k
 newNode a g =
   case hoveredItem g of
     N (i, _) =>
       case minBy (minDelta a) (bondAngles g i) of
         Just b =>
-          -- makes sure the delta of the angles is not too big   
-          if minDelta b a < DirectionMargin
-            then lookup b (bondAnglesWithNodes g i)
-            else Nothing
-        Nothing         => Nothing
+          trace ("min angle candidate: " ++ show b ++ ", delta: " ++ show (minDelta b a)) $
+          if minDelta b a < DirectionMargin then
+            case lookup b (bondAnglesWithNodes g i) of
+              Just j  => updateEdge j i (set Hover) (updateNode i (unset Hover) g)
+              Nothing => g
+          else g
+        Nothing => g
+
     E (E x y _) =>
-     Just (bestPointId a (pointAt g x, x) (pointAt g y, y))
-    None                => Nothing
+      case angleEdge g x y of
+        Just angl =>
+          trace ("edge angle: " ++ show angl ++ ", delta: " ++ show (minDelta a angl)) $
+          if minDelta a angl <= DirectionMargin || minDelta a (angl + pi)  <= DirectionMargin then
+            let g := updateEdge x y (unset Hover) g
+                n := bestPointId a (pointAt g x, x) (pointAt g y, y)
+            in updateNode n (set Hover) g
+          else g
+        Nothing => g
 
--- Improve doc!!!!!!!!
--- Finds the the neighbour with the smallest delta of the bond angle to the 
--- input angle and returns its 'global' Fin k.
-newNode' : {k : _} -> Angle -> CDIGraph k -> CDIGraph k
-newNode' a g =
-  case hoveredItem g of
-    N (i, _) =>
-      case minBy (minDelta a) (bondAngles g i) of
-        Just b =>
-          -- makes sure the delta of the angles is not too big   
-          if minDelta b a < DirectionMargin
-            then ?set1 (?unset1 (lookup b (bondAnglesWithNodes g i)))
-            else g
-        Nothing         => g
-    E (E x y _) =>
-     ?set2 (?unset2 (Just (bestPointId a (pointAt g x, x) (pointAt g y, y))))
-    None                => g
-
--- Improve doc!
-newE : Fin k -> Fin k -> Fin k -> Adj k CDBond CDAtom -> Adj k CDBond CDAtom
-newE x y z (A a ns) =
-  if x == z || y == z
-     then A a $ mapKV (\w => setIf New (w == x || w == y)) ns
-     else A a ns
-
--- Improve doc!
-setNew : 
-     {k : _} 
-  -> Fin k
-  -> CDIGraph k 
-  -> DrawState 
-  -> Angle 
-  -> CDIGraph k
-setNew z g s a = 
-  case hoveredItem g of
-    N (y,_) => mapCtxt (newE z y) g
-      -- This case is no longer relevant / possible
-      -- if y == z then mapWithCtxt (\i, (A a _) => setIf New (i == y) a) g
-    E (E x y _) => mapWithCtxt (\i, (A a _) => setIf New (i == z) a) g
     None => g
+
 
 --- Improve doc!!!!!!!!
 -- First the Role 'New' is set on the neighbouring node with the smallest
@@ -652,9 +656,7 @@ setNew z g s a =
 navigation : Angle -> DrawState -> DrawState
 navigation a s =
   let G _ g  := s.mol
-      Just n := newNode a g | Nothing => s
-   in {mol := hoverIfBothNew (G _ $ setNew n g s a)} s
-
+   in {mol := (G _ $ newNode a g)} s
 
 ------------------------------------------------------------------------------
 
