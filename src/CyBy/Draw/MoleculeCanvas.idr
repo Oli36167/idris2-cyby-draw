@@ -593,33 +593,6 @@ angleEdge g n1 n2 =
       p2 := pointId (lab g n2)
    in angle (p2 - p1)
 
--- Improve doc!!!!!!!!
--- Finds the the neighbour with the smallest delta of the bond angle to the 
--- input angle and returns its 'global' Fin k.
---newNode : {k : _} -> Angle -> CDIGraph k -> CDIGraph k
---newNode a g =
---  case hoveredItem g of
---    N (i, _) =>
---      case minBy (minDelta a) (bondAngles g i) of
---        Just b =>
---          -- makes sure the delta of the angles is not too big   
---          if minDelta b a < DirectionMargin
---            then case lookup b (bondAnglesWithNodes g i) of
---                      Just j  => updateEdge j i (set Hover) (updateNode i (unset Hover) g) 
---                      Nothing => g
---            else g
---        Nothing         => g
---    E (E x y _) => case angleEdge g x y of
---                        Just angl =>
---                                    -- Bug
---                                    if minDelta a angl <= DirectionMargin then 
---                                      let g := updateEdge x y (unset Hover) g
---                                          n := bestPointId a (pointAt g x, x) (pointAt g y, y)
---                                      in updateNode n (set Hover) g
---                                      else g
---                        Nothing  => g
---    None                => g
-
 
 newNode : {k : _} -> Angle -> CDIGraph k -> CDIGraph k
 newNode a g =
@@ -627,7 +600,6 @@ newNode a g =
     N (i, _) =>
       case minBy (minDelta a) (bondAngles g i) of
         Just b =>
-          trace ("min angle candidate: " ++ show b ++ ", delta: " ++ show (minDelta b a)) $
           if minDelta b a < DirectionMargin then
             case lookup b (bondAnglesWithNodes g i) of
               Just j  => updateEdge j i (set Hover) (updateNode i (unset Hover) g)
@@ -638,7 +610,6 @@ newNode a g =
     E (E x y _) =>
       case angleEdge g x y of
         Just angl =>
-          trace ("edge angle: " ++ show angl ++ ", delta: " ++ show (minDelta a angl)) $
           if minDelta a angl <= DirectionMargin || minDelta a (angl + pi)  <= DirectionMargin then
             let g := updateEdge x y (unset Hover) g
                 n := bestPointId a (pointAt g x, x) (pointAt g y, y)
