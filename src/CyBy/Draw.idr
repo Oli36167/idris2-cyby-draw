@@ -23,6 +23,8 @@ import public CyBy.Draw.Internal.Settings
 import public CyBy.Draw.MoleculeCanvas
 import public CyBy.Draw.PeriodicTableCanvas
 import public Text.Molfile
+import public CyBy.Draw.Extensions.Word
+import public CyBy.Draw.Extensions.Util
 
 %default total
 
@@ -216,8 +218,8 @@ minZoom (AT tf _) = tf.scale <= s.minZoom
 maxZoom : (s : DrawSettings) => AffineTransformation -> Bool
 maxZoom (AT tf _) = tf.scale >= s.maxZoom
 
-topBar : DrawSettings => (pre : String) -> DrawState -> Node DrawEvent
-topBar pre s =
+topBar : (ds : DrawSettings) => (pre : String) -> DrawState -> Node DrawEvent
+topBar {ds} pre s =
   div
     [ Id $ topBarID pre, class "cyby-draw-toolbar-top" ]
     [ radioIcon "sel" SelectMode "select" (s.mode == Select)
@@ -235,6 +237,9 @@ topBar pre s =
     , bondIcon "double-bond" (cast Dbl) "double bond" s
     , bondIcon "triple-bond" (cast Triple) "triple bond" s
     , icon "svg" SVG "svg"
+    , nodeIf
+        (ds.usedExtension == Word)
+        (icon "svg-imp" SVGimp "import selected molecule")
     ]
 
 template : (cls : String) -> CDGraph -> String -> DrawState -> Node DrawEvent
@@ -416,6 +421,10 @@ parameters {auto ds : DrawSettings}
   dispKeyDown "Ctrl" s = selectCursor s
   dispKeyDown _      s = neutral
 
+  chooseExt : Extension -> ExtensionEvent -> DrawState -> Cmd DrawEvent
+  chooseExt Word we s = dispWordExt we s
+  chooseExt None _  s = cmd_ (toClipboard $ exportSVG s)
+
   displayEv : DrawEvent -> DrawState -> Cmd DrawEvent
   displayEv Focus            s = focusCurrentApp
   displayEv Blur             s = blur (moleculeCanvas pre)
@@ -438,7 +447,8 @@ parameters {auto ds : DrawSettings}
   displayEv (ZoomIn _)       s = adjustBars s
   displayEv (ZoomOut _)      s = adjustBars s
   displayEv Clear            s = adjustBars s
-  displayEv SVG              s = cmd_ (toClipboard s.curSVG)
+  displayEv SVG              s = chooseExt ds.usedExtension ExportSVG s
+  displayEv SVGimp           s = chooseExt ds.usedExtension ImportSVG s
   displayEv _                s = neutral
 
   export
@@ -459,4 +469,4 @@ displayMol :
 displayMol sd g m =
   let cdg    := initGraph g
       G o mg := maybe cdg (\ns => highlight ns cdg) m
-   in Raw . curSVG $ initMol sd Fill $ G o mg
+   in Raw . curSVG $ initMol sd Fill False $ G o mg

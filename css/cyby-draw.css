@@ -1,3 +1,10 @@
+/* -----------------------------------------------------------------------------
+    Main CSS file for the CyBy-Draw
+
+    Specialised classes are available in other CSS files
+    and will overwrite the classes here.
+ ---------------------------------------------------------------------------- */
+
 /* Page */
 html {
   height: 100%;
