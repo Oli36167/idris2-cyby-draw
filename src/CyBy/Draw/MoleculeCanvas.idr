@@ -556,7 +556,6 @@ addAbbrShortcut l g s =
     _   => s  -- If not hovering over a valid atom, do nothing
 
 ------------------------------------------------------------------------------
--- Improve doc!!!!!!!!
 -- Returning a list of pairs with bond angles and the corresponding
 -- 'global' Fin k of all visible neighbours.
 bondAnglesWithNodes : CDIGraph k -> Fin k -> List (Angle, Fin k)
@@ -564,9 +563,7 @@ bondAnglesWithNodes g x =
   let p  := pointId (lab g x)
       ns := visibleNeighbours g x
   in mapMaybe (\fn => (,fn) <$> angle (pointId (lab g fn) - p)) ns
-  -- in mapMaybe (\fn => map (,fn) (angle $ pointId (lab g fn) - p)) ns
 
--- Geom.Angle?
 -- Returns the shortest distance between two angles. 
 -- (either clockwise or counterclockwise.)
 minDelta : Angle -> Angle -> Angle
@@ -583,17 +580,24 @@ bestPointId a (p1, i1) (p2, i2) =
     else if a == threeHalfPi then if p1.y <= p2.y then i1 else i2
     else i1
 
--- Improve Doc! 
+-- An angular direction margin that is slightly smaller than half pi, in order
+-- to prevent the active node/edge to change perpendicular to the input angle.
 DirectionMargin : Angle
 DirectionMargin = Geom.Angle.angle (7 * pi / 16)
 
+-- Angular margin just under half pi to prevent changing node/edge 
+-- in a direction that is perpendicular to the input angle
+-- For example pressing up on a horizontal edge should not move
+-- the active point.
 angleEdge : CDIGraph k -> Fin k -> Fin k -> Maybe Angle
 angleEdge g n1 n2 =
   let p1 := pointId (lab g n1)
       p2 := pointId (lab g n2)
    in angle (p2 - p1)
 
-
+-- Given and input Angle, it finds the best possible node/edge and changes
+-- the role 'Hover' to that new node/edge. If no best node/edge is found,
+-- the graph is returned unchanged.
 newNode : {k : _} -> Angle -> CDIGraph k -> CDIGraph k
 newNode a g =
   case hoveredItem g of
@@ -606,7 +610,6 @@ newNode a g =
               Nothing => g
           else g
         Nothing => g
-
     E (E x y _) =>
       case angleEdge g x y of
         Just angl =>
@@ -616,14 +619,11 @@ newNode a g =
             in updateNode n (set Hover) g
           else g
         Nothing => g
-
     None => g
 
-
---- Improve doc!!!!!!!!
--- First the Role 'New' is set on the neighbouring node with the smallest
--- delta of input angle and bond angle. Then all Roles 'Hover' are removed
--- and the Role 'New' is replaced with 'Hover'.
+-- Enables node-edge-node navigation by setting 'Hover' to the neighbor whose 
+-- bond angle best matches the input angle, if the angle difference is within 
+-- the direction margin.
 navigation : Angle -> DrawState -> DrawState
 navigation a s =
   let G _ g  := s.mol
