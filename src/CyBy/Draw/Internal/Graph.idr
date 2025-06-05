@@ -5,6 +5,7 @@ import CyBy.Draw.Internal.CoreDims
 import CyBy.Draw.Internal.Atom
 import CyBy.Draw.Internal.Role
 import Data.Graph.Indexed.Subgraph
+import Data.Graph.Indexed.Util
 import Data.SortedMap
 import Data.SortedSet
 import Derive.Prelude
@@ -441,6 +442,24 @@ replaceWith old new a =
 export
 hoverIfNew : CDGraph -> CDGraph
 hoverIfNew = map (New `replaceWith` Hover)
+
+||| Returns the currently hovered edges or atoms atoms
+export %inline
+newItem : {k : _} -> CDIGraph k -> NOE (Fin k, CDAtom) (Edge k CDBond)
+newItem g =
+  eon (find (is New . snd) (labNodes g)) (find (is New . label) (edges g))
+
+
+||| Moves the role 'Hover' onto the new Node after setting a new bond.
+export
+hoverNewPos : CDGraph -> CDGraph
+hoverNewPos (G _ g) = 
+  let g1 := unHover g
+    in
+      case newItem g of
+        E (E x y _) => G _ (updateNode (max x y) (set Hover) g1) 
+        N (i, _)    => G _ (updateNode i         (set Hover) g1)
+        None        => G _ g
 
 ||| Returns the currently hovered edges or atoms atoms
 export %inline
