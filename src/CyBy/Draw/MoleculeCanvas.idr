@@ -555,8 +555,7 @@ addAbbrShortcut l g s =
         setMol (setAbbreviation False l s.posId g s.mol) s
     _   => s  -- If not hovering over a valid atom, do nothing
 
-------------------------------------------------------------------------------
--- Returning a list of pairs with bond angles and the corresponding
+-- Returns a list of pairs with bond angles and the corresponding
 -- 'global' Fin k of all visible neighbours.
 bondAnglesWithNodes : CDIGraph k -> Fin k -> List (Angle, Fin k)
 bondAnglesWithNodes g x =
@@ -585,10 +584,8 @@ bestPointId a (p1, i1) (p2, i2) =
 DirectionMargin : Angle
 DirectionMargin = Geom.Angle.angle (7 * pi / 16)
 
--- Angular margin just under half pi to prevent changing node/edge 
--- in a direction that is perpendicular to the input angle
--- For example pressing up on a horizontal edge should not move
--- the active point.
+-- Returns the angle of the line connecting two nodes, if possible,
+-- regardless of whether they are directly connected in the graph.
 angleEdge : CDIGraph k -> Fin k -> Fin k -> Maybe Angle
 angleEdge g n1 n2 =
   let p1 := pointId (lab g n1)
@@ -613,11 +610,13 @@ newNode a g =
     E (E x y _) =>
       case angleEdge g x y of
         Just angl =>
-          if minDelta a angl <= DirectionMargin || minDelta a (angl + pi)  <= DirectionMargin then
-            let g := updateEdge x y (unset Hover) g
-                n := bestPointId a (pointAt g x, x) (pointAt g y, y)
-            in updateNode n (set Hover) g
-          else g
+          if minDelta a angl <= DirectionMargin || 
+             minDelta a (angl + pi)  <= DirectionMargin 
+            then
+              let g := updateEdge x y (unset Hover) g
+                  n := bestPointId a (pointAt g x, x) (pointAt g y, y)
+              in updateNode n (set Hover) g
+            else g
         Nothing => g
     None => g
 
@@ -627,24 +626,39 @@ newNode a g =
 navigation : Angle -> DrawState -> DrawState
 navigation a s =
   let G _ g  := s.mol
-   in {mol := (G _ $ newNode a g)} s
-
-------------------------------------------------------------------------------
+   in {mol := G _ $ newNode a g} s
 
 onKeyDown, onKeyUp : DrawSettings => String -> DrawState -> DrawState
-onKeyDown "Escape"  s = {mode := Select, mol $= clear} s
-onKeyDown "Delete"  s = delete s
-onKeyDown "Shift"   s = {modifier := Shift} s
-onKeyDown "Control" s = {modifier := Ctrl, mode $= startTemplRot s} s
-onKeyDown "Meta"    s = {modifier := Ctrl, mode $= startTemplRot s} s
-
---onKeyDown "ArrowUp"   s = modAtom {elem $= incIso} s
---onKeyDown "ArrowDown" s = modAtom {elem $= decIso} s
-
-onKeyDown "ArrowUp"    s = navigation threeHalfPi s
+onKeyDown "Escape"     s = {mode := Select, mol $= clear} s
+onKeyDown "Delete"     s = delete s
+onKeyDown "Shift"      s = {modifier := Shift} s
+onKeyDown "Control"    s = {modifier := Ctrl, mode $= startTemplRot s} s
+onKeyDown "Meta"       s = {modifier := Ctrl, mode $= startTemplRot s} s
+onKeyDown "ArrowUp"    s = ifCtrl 
+                           (modAtom {elem $= incIso}) 
+                           (navigation threeHalfPi) s
+onKeyDown "ArrowDown"  s = ifCtrl 
+                           (modAtom {elem $= decIso}) 
+                           (navigation halfPi) s
 onKeyDown "ArrowRight" s = navigation zero s
-onKeyDown "ArrowDown"  s = navigation halfPi s
 onKeyDown "ArrowLeft"  s = navigation pi s
+onKeyDown "+"          s = ifCtrl (zoomIn True) (modAtom {charge $= incCharge}) s
+onKeyDown "-"          s = ifCtrl (zoomOut True) (modAtom {charge $= decCharge}) s
+onKeyDown "c"          s = ifCtrl id (setElemStr "C") s
+onKeyDown "x"          s = ifCtrl id (setElemStr "X") s
+onKeyDown "z"          s = ifCtrl undo (setElemStr "Z") s
+onKeyDown "y"          s = ifCtrl redo (setElemStr "Y") s
+onKeyDown "0"          s = addAbbrShortcut "Ph" phenyl s
+onKeyDown "1"          s = addBondShortcut False Single NoBondStereo s
+onKeyDown "2"          s = addBondShortcut False Dbl NoBondStereo s
+onKeyDown "3"          s = addBondShortcut False Triple NoBondStereo s
+onKeyDown "4"          s = addGroupShortcut phenyl s True
+onKeyDown "5"          s = addGroupShortcut (ring 5) s True
+onKeyDown "6"          s = addGroupShortcut (readMolfile cy) s True
+onKeyDown "7"          s = addBondShortcut True Single Up s 
+onKeyDown "8"          s = addBondShortcut True Single Down s
+onKeyDown "9"          s = addGroupShortcut (readMolfile ac) s False
+onKeyDown x            s = setElemStr (toUpper x) s
 
 onKeyDown "+"       s = ifCtrl (zoomIn True) (modAtom {charge $= incCharge}) s
 onKeyDown "-"       s = ifCtrl (zoomOut True) (modAtom {charge $= decCharge}) s
@@ -664,10 +678,10 @@ onKeyDown "8"       s = addBondShortcut True Single Down s
 onKeyDown "9"       s = addGroupShortcut (readMolfile ac) s False
 onKeyDown x         s = setElemStr (toUpper x) s
 
-onKeyUp "Shift"   s = {modifier $= reset Shift} s
-onKeyUp "Control" s = {modifier $= reset Ctrl, mode $= stopTemplRot s} s
-onKeyUp "Meta"    s = {modifier $= reset Ctrl, mode $= stopTemplRot s} s
-onKeyUp _         s = s
+onKeyUp "Shift"        s = {modifier $= reset Shift} s
+onKeyUp "Control"      s = {modifier $= reset Ctrl, mode $= stopTemplRot s} s
+onKeyUp "Meta"         s = {modifier $= reset Ctrl, mode $= stopTemplRot s} s
+onKeyUp _              s = s
 
 enableAbbr : DrawState -> DrawState
 enableAbbr s =
