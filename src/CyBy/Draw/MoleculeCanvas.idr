@@ -511,7 +511,7 @@ addBondShortcut bol bo bs s =
       False =>
        let bnd   := MkBond bol bo bs
            G _ g := ifHover Origin s.mol
-        in setMol (hoverIfNew (addBond {t = Id} False Nothing bnd g)) s
+        in setMol (hoverNewPos (addBond {t = Id} False Nothing bnd g)) s
     E (E x y $ CB r b) =>
       if bs == NoBondStereo then
           setMol (G _ $ insEdge (E x y $ CB r (cast bo)) s.imol) s

@@ -449,23 +449,28 @@ newItem : {k : _} -> CDIGraph k -> NOE (Fin k, CDAtom) (Edge k CDBond)
 newItem g =
   eon (find (is New . snd) (labNodes g)) (find (is New . label) (edges g))
 
-
-||| Moves the role 'Hover' onto the new Node after setting a new bond.
-export
-hoverNewPos : CDGraph -> CDGraph
-hoverNewPos (G _ g) = 
-  let g1 := unHover g
-    in
-      case newItem g of
-        E (E x y _) => G _ (updateNode (max x y) (set Hover) g1) 
-        N (i, _)    => G _ (updateNode i         (set Hover) g1)
-        None        => G _ g
-
 ||| Returns the currently hovered edges or atoms atoms
 export %inline
 hoveredItem : {k : _} -> CDIGraph k -> NOE (Fin k, CDAtom) (Edge k CDBond)
 hoveredItem g =
   eon (find (is Hover . snd) (labNodes g)) (find (is Hover . label) (edges g))
+
+||| Moves the role 'Hover' onto the new Node after setting a new bond.
+export
+hoverNewPos : CDGraph -> CDGraph
+hoverNewPos (G _ g) =
+  let g1 := unHover g
+    in
+      case hoveredItem g of
+        N (i, _)    => case newItem g of
+                        E (E x y _) => if i == x then  
+                                          G _ (updateNode y (set Hover) g1)
+                                        else
+                                          G _ (updateNode x (set Hover) g1)
+                        N (i, _)    => G _ (updateNode i         (set Hover) g1)
+                        None        => G _ g
+        E (E x y _) => G _ g
+        None        => G _ g
 
 ||| Selects the currently hovered atoms and bonds.
 |||
