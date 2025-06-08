@@ -516,7 +516,7 @@ addBondShortcut bol bo bs s =
       if bs == NoBondStereo then
           setMol (G _ $ insEdge (E x y $ CB r (cast bo)) s.imol) s
       else s
-    _ => s  -- If not hovering over a valid atom or Edge, do nothing
+    None => s  
 
 -- Adds a group to the molecule if hovering over a valid atom or bond, 
 -- ensuring it's not an abbreviation. 
@@ -530,12 +530,13 @@ addGroupShortcut g s bol =
   case hoveredItem s.imol of
     N x => case inAbbreviation s.imol (fst x) of 
       True => s 
-      False =>  
-           setMol (mergeGraphs s.posId s.mol g) s
+      False => 
+           -- Test this after rebase. hoverNewPos might not be needed.   
+           setMol (hoverNewPos (mergeGraphs s.posId s.mol g)) s
     E e => if bol then 
-                  setMol (mergeGraphs s.posId s.mol g) s
+                  setMol (hoverNewPos (mergeGraphs s.posId s.mol g)) s
             else s
-    _ => s 
+    None => s 
 
 -- Adds an abbreviation to the molecule if hovering over a valid atom, 
 -- ensuring it's not an abbreviation. 
@@ -553,7 +554,8 @@ addAbbrShortcut l g s =
         let s = {mol $= ifHover Origin} s  -- First set the Origin flag 
         in 
         setMol (setAbbreviation False l s.posId g s.mol) s
-    _ => s  -- If not hovering over a valid atom, do nothing
+    E e  => s   
+    None => s  
 
 onKeyDown, onKeyUp : DrawSettings => String -> DrawState -> DrawState
 onKeyDown "Escape"  s = {mode := Select, mol $= clear} s
