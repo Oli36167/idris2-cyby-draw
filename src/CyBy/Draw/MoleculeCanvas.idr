@@ -660,24 +660,6 @@ onKeyDown "8"          s = addBondShortcut True Single Down s
 onKeyDown "9"          s = addGroupShortcut (readMolfile ac) s False
 onKeyDown x            s = setElemStr (toUpper x) s
 
-onKeyDown "+"       s = ifCtrl (zoomIn True) (modAtom {charge $= incCharge}) s
-onKeyDown "-"       s = ifCtrl (zoomOut True) (modAtom {charge $= decCharge}) s
-onKeyDown "c"       s = ifCtrl id (setElemStr "C") s
-onKeyDown "x"       s = ifCtrl id (setElemStr "X") s
-onKeyDown "z"       s = ifCtrl undo (setElemStr "Z") s
-onKeyDown "y"       s = ifCtrl redo (setElemStr "Y") s
-onKeyDown "0"       s = addAbbrShortcut "Ph" phenyl s
-onKeyDown "1"       s = addBondShortcut False Single NoBondStereo s
-onKeyDown "2"       s = addBondShortcut False Dbl NoBondStereo s
-onKeyDown "3"       s = addBondShortcut False Triple NoBondStereo s
-onKeyDown "4"       s = addGroupShortcut phenyl s True
-onKeyDown "5"       s = addGroupShortcut (ring 5) s True
-onKeyDown "6"       s = addGroupShortcut (readMolfile cy) s True
-onKeyDown "7"       s = addBondShortcut True Single Up s 
-onKeyDown "8"       s = addBondShortcut True Single Down s
-onKeyDown "9"       s = addGroupShortcut (readMolfile ac) s False
-onKeyDown x         s = setElemStr (toUpper x) s
-
 onKeyUp "Shift"        s = {modifier $= reset Shift} s
 onKeyUp "Control"      s = {modifier $= reset Ctrl, mode $= stopTemplRot s} s
 onKeyUp "Meta"         s = {modifier $= reset Ctrl, mode $= stopTemplRot s} s
