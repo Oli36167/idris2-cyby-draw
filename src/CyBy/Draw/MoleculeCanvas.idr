@@ -18,6 +18,7 @@ import Text.Molfile
 import Text.SVG
 import Debug.Trace
 import Data.Graph.Indexed.Util
+import CyBy.Draw.Internal.Navigation
 
 %default total
 %language ElabReflection
@@ -555,71 +556,6 @@ addAbbrShortcut l g s =
         setMol (setAbbreviation False l s.posId g s.mol) s
     _   => s  -- If not hovering over a valid atom, do nothing
 
--- Returns a list of pairs with bond angles and the corresponding
--- 'global' Fin k of all visible neighbours.
-bondAnglesWithNodes : CDIGraph k -> Fin k -> List (Angle, Fin k)
-bondAnglesWithNodes g x =
-  let p  := pointId (lab g x)
-      ns := visibleNeighbours g x
-  in mapMaybe (\fn => (,fn) <$> angle (pointId (lab g fn) - p)) ns
-
--- Returns the shortest distance between two angles. 
--- (either clockwise or counterclockwise.)
-minDelta : Angle -> Angle -> Angle
-minDelta x y = min (delta x y) (negate (delta x y))
-
--- Given an input angle and two nodes (with their positions and indices),
--- returns the Fin k of the node that lies in the direction most closely
--- matching the input angle.
-bestPointId : Angle -> (Point Id, Fin k) -> (Point Id, Fin k) -> Fin k
-bestPointId a (p1, i1) (p2, i2) =
-    if      a == zero        then if p1.x >= p2.x then i1 else i2
-    else if a == halfPi      then if p1.y >= p2.y then i1 else i2
-    else if a == pi          then if p1.x <= p2.x then i1 else i2
-    else if a == threeHalfPi then if p1.y <= p2.y then i1 else i2
-    else i1
-
--- An angular direction margin that is slightly smaller than half pi, in order
--- to prevent the active node/edge to change perpendicular to the input angle.
-DirectionMargin : Angle
-DirectionMargin = Geom.Angle.angle (7 * pi / 16)
-
--- Returns the angle of the line connecting two nodes, if possible,
--- regardless of whether they are directly connected in the graph.
-angleEdge : CDIGraph k -> Fin k -> Fin k -> Maybe Angle
-angleEdge g n1 n2 =
-  let p1 := pointId (lab g n1)
-      p2 := pointId (lab g n2)
-   in angle (p2 - p1)
-
--- Given and input Angle, it finds the best possible node/edge and changes
--- the role 'Hover' to that new node/edge. If no best node/edge is found,
--- the graph is returned unchanged.
-newNode : {k : _} -> Angle -> CDIGraph k -> CDIGraph k
-newNode a g =
-  case hoveredItem g of
-    N (i, _) =>
-      case minBy (minDelta a) (bondAngles g i) of
-        Just b =>
-          if minDelta b a < DirectionMargin then
-            case lookup b (bondAnglesWithNodes g i) of
-              Just j  => updateEdge j i (set Hover) (updateNode i (unset Hover) g)
-              Nothing => g
-          else g
-        Nothing => g
-    E (E x y _) =>
-      case angleEdge g x y of
-        Just angl =>
-          if minDelta a angl <= DirectionMargin || 
-             minDelta a (angl + pi)  <= DirectionMargin 
-            then
-              let g := updateEdge x y (unset Hover) g
-                  n := bestPointId a (pointAt g x, x) (pointAt g y, y)
-              in updateNode n (set Hover) g
-            else g
-        Nothing => g
-    None => g
-
 -- Enables node-edge-node navigation by setting 'Hover' to the neighbor whose 
 -- bond angle best matches the input angle, if the angle difference is within 
 -- the direction margin.
@@ -634,12 +570,10 @@ onKeyDown "Delete"     s = delete s
 onKeyDown "Shift"      s = {modifier := Shift} s
 onKeyDown "Control"    s = {modifier := Ctrl, mode $= startTemplRot s} s
 onKeyDown "Meta"       s = {modifier := Ctrl, mode $= startTemplRot s} s
-onKeyDown "ArrowUp"    s = ifCtrl 
-                           (modAtom {elem $= incIso}) 
-                           (navigation threeHalfPi) s
-onKeyDown "ArrowDown"  s = ifCtrl 
-                           (modAtom {elem $= decIso}) 
-                           (navigation halfPi) s
+onKeyDown "ArrowUp"    s = 
+  ifCtrl (modAtom {elem $= incIso}) (navigation threeHalfPi) s
+onKeyDown "ArrowDown"  s = 
+  ifCtrl (modAtom {elem $= decIso}) (navigation halfPi) s
 onKeyDown "ArrowRight" s = navigation zero s
 onKeyDown "ArrowLeft"  s = navigation pi s
 onKeyDown "+"          s = ifCtrl (zoomIn True) (modAtom {charge $= incCharge}) s
