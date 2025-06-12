@@ -562,7 +562,7 @@ addAbbrShortcut l g s =
 navigation : Angle -> DrawState -> DrawState
 navigation a s =
   let G _ g  := s.mol
-   in {mol := G _ $ newNode a g} s
+   in {mol := G _ $ moveActive a g} s
 
 onKeyDown, onKeyUp : DrawSettings => String -> DrawState -> DrawState
 onKeyDown "Escape"     s = {mode := Select, mol $= clear} s

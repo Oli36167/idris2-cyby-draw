@@ -60,12 +60,15 @@ angleEdge g n1 n2 =
       p2 := pointId (lab g n2)
    in angle (p2 - p1)
 
--- Given and input Angle, it finds the best possible node/edge and changes
--- the role 'Hover' to that new node/edge. If no best node/edge is found,
--- the graph is returned unchanged.
+||| Given an input angle and a currently hovered node or edge,
+||| attempts to transfer the role Hover to the most appropriate
+||| neighboring node or edge based on angular proximity.
+||| In the case of edge-to-node navigation, node positions are also
+||| evaluated to determine the best match.
+||| If no suitable candidate is found, the graph is returned unchanged.
 export
-newNode : {k : _} -> Angle -> CDIGraph k -> CDIGraph k
-newNode a g =
+moveActive : {k : _} -> Angle -> CDIGraph k -> CDIGraph k
+moveActive a g =
   case hoveredItem g of
     N (i, _) =>
       case minBy (minDelta a) (bondAngles g i) of
