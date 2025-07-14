@@ -11,6 +11,15 @@ import Geom
 
 %default total
 
+public export
+data Direction = N | W | S | E
+
+dirAngle : Direction -> Angle
+dirAngle N = threeHalfPi
+dirAngle W = pi
+dirAngle S = halfPi
+dirAngle E = zero
+
 -- Returns a list of pairs with bond angles and the corresponding
 -- 'global' Fin k of all visible neighbours.
 bondAnglesWithNodes : CDIGraph k -> Fin k -> List (Angle, Fin k)
@@ -22,13 +31,11 @@ bondAnglesWithNodes g x =
 -- Given an input angle and two nodes (with their positions and indices),
 -- returns the Fin k of the node that lies in the direction most closely
 -- matching the input angle.
-bestPointId : Angle -> (Point Id, Fin k) -> (Point Id, Fin k) -> Fin k
-bestPointId a (p1, i1) (p2, i2) =
-    if      a == zero        then if p1.x >= p2.x then i1 else i2
-    else if a == halfPi      then if p1.y >= p2.y then i1 else i2
-    else if a == pi          then if p1.x <= p2.x then i1 else i2
-    else if a == threeHalfPi then if p1.y <= p2.y then i1 else i2
-    else i1
+bestPointId : Direction -> (Point Id, Fin k) -> (Point Id, Fin k) -> Fin k
+bestPointId E (p1, i1) (p2, i2) = if p1.x >= p2.x then i1 else i2
+bestPointId S (p1, i1) (p2, i2) = if p1.y >= p2.y then i1 else i2
+bestPointId W (p1, i1) (p2, i2) = if p1.x <= p2.x then i1 else i2
+bestPointId N (p1, i1) (p2, i2) = if p1.y <= p2.y then i1 else i2
 
 -- An angular direction margin that is slightly smaller than half pi, in order
 -- to prevent the active node/edge to change perpendicular to the input angle.
@@ -50,13 +57,13 @@ angleEdge g n1 n2 =
 ||| evaluated to determine the best match.
 ||| If no suitable candidate is found, the graph is returned unchanged.
 export
-moveActive : {k : _} -> Angle -> CDIGraph k -> CDIGraph k
-moveActive a g =
+moveActive : {k : _} -> Direction -> CDIGraph k -> CDIGraph k
+moveActive d g =
   case hoveredItem g of
     N (i, _) =>
-      case minBy (minDelta a) (bondAngles g i) of
+      case minBy (minDelta $ dirAngle d) (bondAngles g i) of
         Just b =>
-          if minDelta b a < DirectionMargin then
+          if minDelta b (dirAngle d) < DirectionMargin then
             case lookup b (bondAnglesWithNodes g i) of
               Just j  => updateEdge j i (set Hover) (updateNode i (unset Hover) g)
               Nothing => g
@@ -65,11 +72,11 @@ moveActive a g =
     E (E x y _) =>
       case angleEdge g x y of
         Just angl =>
-          if minDelta a angl <= DirectionMargin || 
-             minDelta a (angl + pi)  <= DirectionMargin 
+          if minDelta (dirAngle d) angl <= DirectionMargin || 
+             minDelta (dirAngle d) (angl + pi)  <= DirectionMargin 
             then
               let g := updateEdge x y (unset Hover) g
-                  n := bestPointId a (pointAt g x, x) (pointAt g y, y)
+                  n := bestPointId d (pointAt g x, x) (pointAt g y, y)
               in updateNode n (set Hover) g
             else g
         Nothing => g
