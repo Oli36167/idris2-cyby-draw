@@ -1,27 +1,15 @@
 module CyBy.Draw.Internal.Navigation
 
 import Chem.Util
-import CyBy.Draw.Draw
-import CyBy.Draw.Event
-import CyBy.Draw.Internal.Abbreviations
 import CyBy.Draw.Internal.Atom
-import CyBy.Draw.Internal.CoreDims
 import CyBy.Draw.Internal.Graph
-import CyBy.Draw.Internal.Label
-import CyBy.Draw.Internal.Ring
 import CyBy.Draw.Internal.Role
-import CyBy.Draw.Internal.Settings
-import CyBy.Draw.PeriodicTableCanvas
-import Derive.Prelude
+import Data.Fin
+import Data.Graph.Indexed
+import Data.List
 import Geom
-import Text.Molfile
-import Text.SVG
-import Debug.Trace
-import Data.Graph.Indexed.Util
 
 %default total
-%language ElabReflection
-%hide Language.Reflection.TTImp.Mode
 
 -- Returns a list of pairs with bond angles and the corresponding
 -- 'global' Fin k of all visible neighbours.
