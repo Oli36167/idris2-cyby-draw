@@ -16,6 +16,7 @@ import Derive.Prelude
 import Geom
 import Text.Molfile
 import Text.SVG
+import CyBy.Draw.Internal.Navigation
 
 %default total
 %language ElabReflection
@@ -505,7 +506,7 @@ addBondShortcut :
 addBondShortcut bol bo bs s =
   case hoveredItem s.imol of
     N x => case inAbbreviation s.imol (fst x) of
-      True => s
+      True  => s
       False =>
        let bnd   := MkBond bol bo bs
            G _ g := ifHover Origin s.mol
@@ -527,7 +528,7 @@ addGroupShortcut :
 addGroupShortcut g s bol =
   case hoveredItem s.imol of
     N x => case inAbbreviation s.imol (fst x) of 
-      True => s 
+      True  => s 
       False =>  
            setMol (mergeGraphs s.posId s.mol g) s
     E e => if bol then 
@@ -546,43 +547,52 @@ addAbbrShortcut :
 addAbbrShortcut l g s =
   case hoveredItem s.imol of
     N x => case inAbbreviation s.imol (fst x) of
-      True => s
+      True  => s
       False =>
-        let s = {mol $= ifHover Origin} s  -- First set the Origin flag 
+        let s := {mol $= ifHover Origin} s  -- First set the Origin flag 
         in 
         setMol (setAbbreviation False l s.posId g s.mol) s
-    _ => s  -- If not hovering over a valid atom, do nothing
+    _   => s  -- If not hovering over a valid atom, do nothing
+
+-- Enables node-edge-node navigation by setting 'Hover' to the neighbor whose 
+-- bond angle best matches the input angle, if the angle difference is within 
+-- the direction margin.
+%inline
+navigate : Direction -> DrawState -> DrawState
+navigate d = {mol $= moveActive d}
 
 onKeyDown, onKeyUp : DrawSettings => String -> DrawState -> DrawState
-onKeyDown "Escape"  s = {mode := Select, mol $= clear} s
-onKeyDown "Delete"  s = delete s
-onKeyDown "Shift"   s = {modifier := Shift} s
-onKeyDown "Control" s = {modifier := Ctrl, mode $= startTemplRot s} s
-onKeyDown "Meta"    s = {modifier := Ctrl, mode $= startTemplRot s} s
-onKeyDown "ArrowUp"   s = modAtom {elem $= incIso} s
-onKeyDown "ArrowDown" s = modAtom {elem $= decIso} s
-onKeyDown "+"       s = ifCtrl (zoomIn True) (modAtom {charge $= incCharge}) s
-onKeyDown "-"       s = ifCtrl (zoomOut True) (modAtom {charge $= decCharge}) s
-onKeyDown "c"       s = ifCtrl id (setElemStr "C") s
-onKeyDown "x"       s = ifCtrl id (setElemStr "X") s
-onKeyDown "z"       s = ifCtrl undo (setElemStr "Z") s
-onKeyDown "y"       s = ifCtrl redo (setElemStr "Y") s
-onKeyDown "0"       s = addAbbrShortcut "Ph" phenyl s
-onKeyDown "1"       s = addBondShortcut False Single NoBondStereo s
-onKeyDown "2"       s = addBondShortcut False Dbl NoBondStereo s
-onKeyDown "3"       s = addBondShortcut False Triple NoBondStereo s
-onKeyDown "4"       s = addGroupShortcut phenyl s True
-onKeyDown "5"       s = addGroupShortcut (ring 5) s True
-onKeyDown "6"       s = addGroupShortcut (readMolfile cy) s True
-onKeyDown "7"       s = addBondShortcut True Single Up s 
-onKeyDown "8"       s = addBondShortcut True Single Down s
-onKeyDown "9"       s = addGroupShortcut (readMolfile ac) s False
-onKeyDown x         s = setElemStr (toUpper x) s
+onKeyDown "Escape"     s = {mode := Select, mol $= clear} s
+onKeyDown "Delete"     s = delete s
+onKeyDown "Shift"      s = {modifier := Shift} s
+onKeyDown "Control"    s = {modifier := Ctrl, mode $= startTemplRot s} s
+onKeyDown "Meta"       s = {modifier := Ctrl, mode $= startTemplRot s} s
+onKeyDown "ArrowUp"    s = ifCtrl (modAtom {elem $= incIso}) (navigate N) s
+onKeyDown "ArrowDown"  s = ifCtrl (modAtom {elem $= decIso}) (navigate S) s
+onKeyDown "ArrowRight" s = navigate E s
+onKeyDown "ArrowLeft"  s = navigate W s
+onKeyDown "+"          s = ifCtrl (zoomIn True) (modAtom {charge $= incCharge}) s
+onKeyDown "-"          s = ifCtrl (zoomOut True) (modAtom {charge $= decCharge}) s
+onKeyDown "c"          s = ifCtrl id (setElemStr "C") s
+onKeyDown "x"          s = ifCtrl id (setElemStr "X") s
+onKeyDown "z"          s = ifCtrl undo (setElemStr "Z") s
+onKeyDown "y"          s = ifCtrl redo (setElemStr "Y") s
+onKeyDown "0"          s = addAbbrShortcut "Ph" phenyl s
+onKeyDown "1"          s = addBondShortcut False Single NoBondStereo s
+onKeyDown "2"          s = addBondShortcut False Dbl NoBondStereo s
+onKeyDown "3"          s = addBondShortcut False Triple NoBondStereo s
+onKeyDown "4"          s = addGroupShortcut phenyl s True
+onKeyDown "5"          s = addGroupShortcut (ring 5) s True
+onKeyDown "6"          s = addGroupShortcut (readMolfile cy) s True
+onKeyDown "7"          s = addBondShortcut True Single Up s 
+onKeyDown "8"          s = addBondShortcut True Single Down s
+onKeyDown "9"          s = addGroupShortcut (readMolfile ac) s False
+onKeyDown x            s = setElemStr (toUpper x) s
 
-onKeyUp "Shift"   s = {modifier $= reset Shift} s
-onKeyUp "Control" s = {modifier $= reset Ctrl, mode $= stopTemplRot s} s
-onKeyUp "Meta"    s = {modifier $= reset Ctrl, mode $= stopTemplRot s} s
-onKeyUp _         s = s
+onKeyUp "Shift"        s = {modifier $= reset Shift} s
+onKeyUp "Control"      s = {modifier $= reset Ctrl, mode $= stopTemplRot s} s
+onKeyUp "Meta"         s = {modifier $= reset Ctrl, mode $= stopTemplRot s} s
+onKeyUp _              s = s
 
 enableAbbr : DrawState -> DrawState
 enableAbbr s =
