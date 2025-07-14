@@ -61,13 +61,11 @@ moveActive : Direction -> CDGraph -> CDGraph
 moveActive d (G k g) =
   G k $ case hoveredItem g of
     N (i, _) =>
-      case minBy (minDelta $ dirAngle d) (bondAngles g i) of
-        Just b =>
-          if minDelta b (dirAngle d) < DirectionMargin then
-            case lookup b (bondAnglesWithNodes g i) of
-              Just j  => updateEdge j i (set Hover) (updateNode i (unset Hover) g)
-              Nothing => g
-          else g
+      case minBy (minDelta (dirAngle d) . fst) (bondAnglesWithNodes g i) of
+        Just (b,j) =>
+          if minDelta b (dirAngle d) < DirectionMargin
+             then updateEdge j i (set Hover) (updateNode i (unset Hover) g)
+             else g
         Nothing => g
     E (E x y _) =>
       case angleEdge g x y of
