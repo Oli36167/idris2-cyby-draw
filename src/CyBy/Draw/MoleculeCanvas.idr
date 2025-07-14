@@ -16,8 +16,6 @@ import Derive.Prelude
 import Geom
 import Text.Molfile
 import Text.SVG
-import Debug.Trace
-import Data.Graph.Indexed.Util
 import CyBy.Draw.Internal.Navigation
 
 %default total
