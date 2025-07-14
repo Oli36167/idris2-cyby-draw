@@ -371,11 +371,10 @@ export %inline
 cleanup : CDGraph -> CDGraph
 cleanup = bimap (keep Persistent) (keep Persistent)
 
-export %inline
+%inline
 unHover : {k : _} -> CDIGraph k -> CDIGraph k
 unHover = bimap (unset Hover) (unset Hover)
 
-export
 hoverE : Fin k -> Fin k -> Fin k -> Adj k CDBond CDAtom -> Adj k CDBond CDAtom
 hoverE x y z (A a ns) =
   if x == z || y == z
@@ -442,11 +441,6 @@ replaceWith old new a =
 export
 hoverIfNew : CDGraph -> CDGraph
 hoverIfNew = map (New `replaceWith` Hover)
-
-||| 'New' is replaced with 'Hover', and any existing 'Hover' roles are removed.
-export
-hoverIfBothNew : CDGraph -> CDGraph
-hoverIfBothNew = bimap (New `replaceWith` Hover) (New `replaceWith` Hover)
 
 ||| Returns the currently hovered edges or atoms atoms
 export %inline
