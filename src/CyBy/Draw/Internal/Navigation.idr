@@ -19,11 +19,6 @@ bondAnglesWithNodes g x =
       ns := visibleNeighbours g x
   in mapMaybe (\fn => (,fn) <$> angle (pointId (lab g fn) - p)) ns
 
--- Returns the shortest distance between two angles. 
--- (either clockwise or counterclockwise.)
-minDelta : Angle -> Angle -> Angle
-minDelta x y = min (delta x y) (negate (delta x y))
-
 -- Given an input angle and two nodes (with their positions and indices),
 -- returns the Fin k of the node that lies in the direction most closely
 -- matching the input angle.
