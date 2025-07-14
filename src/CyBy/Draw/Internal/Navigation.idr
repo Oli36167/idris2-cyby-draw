@@ -57,9 +57,9 @@ angleEdge g n1 n2 =
 ||| evaluated to determine the best match.
 ||| If no suitable candidate is found, the graph is returned unchanged.
 export
-moveActive : {k : _} -> Direction -> CDIGraph k -> CDIGraph k
-moveActive d g =
-  case hoveredItem g of
+moveActive : Direction -> CDGraph -> CDGraph
+moveActive d (G k g) =
+  G k $ case hoveredItem g of
     N (i, _) =>
       case minBy (minDelta $ dirAngle d) (bondAngles g i) of
         Just b =>

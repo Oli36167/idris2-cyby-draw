@@ -559,10 +559,9 @@ addAbbrShortcut l g s =
 -- Enables node-edge-node navigation by setting 'Hover' to the neighbor whose 
 -- bond angle best matches the input angle, if the angle difference is within 
 -- the direction margin.
-navigation : Direction -> DrawState -> DrawState
-navigation d s =
-  let G _ g  := s.mol
-   in {mol := G _ $ moveActive d g} s
+%inline
+navigate : Direction -> DrawState -> DrawState
+navigate d = {mol $= moveActive d}
 
 onKeyDown, onKeyUp : DrawSettings => String -> DrawState -> DrawState
 onKeyDown "Escape"     s = {mode := Select, mol $= clear} s
@@ -570,12 +569,10 @@ onKeyDown "Delete"     s = delete s
 onKeyDown "Shift"      s = {modifier := Shift} s
 onKeyDown "Control"    s = {modifier := Ctrl, mode $= startTemplRot s} s
 onKeyDown "Meta"       s = {modifier := Ctrl, mode $= startTemplRot s} s
-onKeyDown "ArrowUp"    s = 
-  ifCtrl (modAtom {elem $= incIso}) (navigation N) s
-onKeyDown "ArrowDown"  s = 
-  ifCtrl (modAtom {elem $= decIso}) (navigation S) s
-onKeyDown "ArrowRight" s = navigation E s
-onKeyDown "ArrowLeft"  s = navigation W s
+onKeyDown "ArrowUp"    s = ifCtrl (modAtom {elem $= incIso}) (navigate N) s
+onKeyDown "ArrowDown"  s = ifCtrl (modAtom {elem $= decIso}) (navigate S) s
+onKeyDown "ArrowRight" s = navigate E s
+onKeyDown "ArrowLeft"  s = navigate W s
 onKeyDown "+"          s = ifCtrl (zoomIn True) (modAtom {charge $= incCharge}) s
 onKeyDown "-"          s = ifCtrl (zoomOut True) (modAtom {charge $= decCharge}) s
 onKeyDown "c"          s = ifCtrl id (setElemStr "C") s
